@@ -32,3 +32,32 @@ django-debug-toolbar==4.2.0
 python-dotenv==1.0.0
 
 django-filter==23.5
+
+# Documentation
+Sphinx==7.2.6
+sphinx-rtd-theme==2.0.0
+sphinx-autobuild==2024.2.4
+sphinxcontrib-django==2.5
+
+# Email support
+django-anymail==10.2
+
+# Password generation and validation
+zxcvbn==4.4.28
+
+# Testing
+pytest==7.4.3
+pytest-django==4.7.0
+pytest-cov==4.1.0
+factory-boy==3.3.0
+faker==21.0.0
+
+# Code quality
+flake8==7.0.0
+black==23.12.1
+isort==5.13.2
+
+# Task scheduling (for password expiration)
+celery==5.3.4
+redis==5.0.1
+django-celery-beat==2.5.0
