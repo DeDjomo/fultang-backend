@@ -35,6 +35,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'django_celery_beat',
+
+    # Local apps
+    'apps.gestion_hospitaliere',
+    'apps.suivi_patient',
 ]
 
 MIDDLEWARE = [
@@ -81,6 +85,14 @@ DATABASES = {
     }
 }
 
+# Custom User Model
+AUTH_USER_MODEL = 'gestion_hospitaliere.Personnel'
+
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'apps.gestion_hospitaliere.backends.EmailOrMatriculeBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
