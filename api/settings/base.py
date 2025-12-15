@@ -236,3 +236,15 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 # PASSWORD EXPIRATION SETTINGS
 # ==================================================
 PASSWORD_EXPIRATION_DAYS = 3
+
+# ==================================================
+# CELERY BEAT SCHEDULE
+# ==================================================
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'check-expired-passwords': {
+        'task': 'apps.gestion_hospitaliere.tasks.check_expired_passwords',
+        'schedule': crontab(hour=0, minute=0),  # Quotidien a minuit
+    },
+}

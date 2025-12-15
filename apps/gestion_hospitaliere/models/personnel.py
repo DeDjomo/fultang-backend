@@ -8,7 +8,7 @@ Date: 2025-12-14
 """
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinValueValidator
 from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
@@ -19,18 +19,20 @@ class Personnel(AbstractUser):
     """Modele pour le personnel de l'hopital (etend AbstractUser)."""
 
     POSTE_CHOICES = [
-        ('medecin', 'Medecin'),
+        ('receptioniste', 'Receptioniste'),
+        ('caissier', 'Caissier'),
         ('infirmier', 'Infirmier'),
-        ('technicien', 'Technicien'),
-        ('administratif', 'Administratif'),
-        ('autre', 'Autre'),
+        ('medecin', 'Medecin'),
+        ('laborantin', 'Laborantin'),
+        ('pharmacien', 'Pharmacien'),
+        ('comptable', 'Comptable'),
+        ('directeur', 'Directeur'),
     ]
 
     STATUT_CHOICES = [
         ('actif', 'Actif'),
-        ('inactif', 'Inactif'),
-        ('conge', 'En conge'),
-        ('suspendu', 'Suspendu'),
+        ('licencie', 'Licencie'),
+        ('retraite', 'Retraite'),
     ]
 
     phone_validator = RegexValidator(
@@ -53,6 +55,20 @@ class Personnel(AbstractUser):
         blank=True,
         related_name='personnels'
     )
+    adresse = models.CharField(max_length=255, blank=True, null=True)
+    salaire = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        validators=[MinValueValidator(0.01)]
+    )
+    statut_de_connexion = models.CharField(
+        max_length=10,
+        choices=[('actif', 'Actif'), ('inactif', 'Inactif')],
+        default='inactif'
+    )
+    date_embauche = models.DateField(auto_now_add=True, null=True, blank=True)
     password_expiry_date = models.DateTimeField(null=True, blank=True)
     first_login_done = models.BooleanField(default=False)
 
@@ -80,3 +96,15 @@ class Personnel(AbstractUser):
 
     def __str__(self):
         return f"{self.matricule} - {self.nom} {self.prenom}"
+
+    def check_password_expired(self):
+        """Verifie si le mot de passe a expire (3 jours sans premiere connexion)."""
+        if not self.first_login_done and self.password_expiry_date:
+            return timezone.now() > self.password_expiry_date
+        return False
+
+    def block_expired_password(self):
+        """Definit le mot de passe a 'interdit' si expire."""
+        if self.check_password_expired():
+            self.set_password('interdit')
+            self.save(update_fields=['password'])

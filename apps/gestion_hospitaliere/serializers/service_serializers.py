@@ -243,3 +243,362 @@ class ServiceCreateSerializer(serializers.Serializer):
     def to_representation(self, instance):
         """Retourne la representation complete du service cree."""
         return ServiceSerializer(instance).data
+
+
+class PersonnelCreateSerializer(serializers.Serializer):
+    """
+    Serializer pour la creation de Personnel avec generation automatique du mot de passe.
+
+    Ne demande PAS username ni password (auto-generes).
+    Genere un mot de passe robuste et l'envoie par email.
+    """
+
+    nom = serializers.CharField(max_length=100)
+    prenom = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    date_naissance = serializers.DateField()
+    adresse = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    email = serializers.EmailField()
+    contact = serializers.CharField(max_length=9)
+    poste = serializers.ChoiceField(choices=Personnel.POSTE_CHOICES)
+    salaire = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        allow_null=True
+    )
+    service = serializers.PrimaryKeyRelatedField(
+        queryset=Service.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
+    def validate_email(self, value):
+        """Verifie que l'email est unique."""
+        if Personnel.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                f'Un personnel avec l\'email "{value}" existe deja. '
+                'Veuillez utiliser un autre email.'
+            )
+        return value
+
+    def validate_contact(self, value):
+        """Verifie le format du contact (9 chiffres, commence par 6)."""
+        import re
+        if not re.match(r'^6\d{8}$', value):
+            raise serializers.ValidationError(
+                'Le numero de telephone doit contenir exactement 9 chiffres '
+                'et commencer par 6. Exemple: 677123456'
+            )
+
+        if Personnel.objects.filter(contact=value).exists():
+            raise serializers.ValidationError(
+                f'Un personnel avec le contact "{value}" existe deja. '
+                'Veuillez utiliser un autre numero.'
+            )
+        return value
+
+    def validate_salaire(self, value):
+        """Verifie que le salaire est positif."""
+        if value is not None and value <= 0:
+            raise serializers.ValidationError(
+                'Le salaire doit etre strictement positif.'
+            )
+        return value
+
+    def create(self, validated_data):
+        """Cree un personnel avec mot de passe auto-genere."""
+        from apps.gestion_hospitaliere.utils import generate_robust_password
+        from apps.gestion_hospitaliere.tasks import send_personnel_password_email
+
+        # Generer username depuis email
+        email = validated_data['email']
+        username = email.split('@')[0]
+
+        # Assurer unicite du username
+        base_username = username
+        counter = 1
+        while Personnel.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        # Generer mot de passe robuste
+        temp_password = generate_robust_password()
+
+        # Preparer les donnees
+        validated_data['username'] = username
+        validated_data['password'] = make_password(temp_password)
+        validated_data.setdefault('statut', 'actif')  # Statut actif par defaut
+
+        # Creer le personnel
+        personnel = Personnel.objects.create(**validated_data)
+
+        # Envoyer email asynchrone
+        send_personnel_password_email.delay(personnel.id, temp_password)
+
+        return personnel
+
+
+class MedecinCreateSerializer(serializers.Serializer):
+    """
+    Serializer pour la creation de Medecin avec generation automatique du mot de passe.
+
+    Herite du comportement de PersonnelCreateSerializer et ajoute le champ specialite.
+    """
+
+    nom = serializers.CharField(max_length=100)
+    prenom = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    date_naissance = serializers.DateField()
+    adresse = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    email = serializers.EmailField()
+    contact = serializers.CharField(max_length=9)
+    specialite = serializers.CharField(max_length=100)
+    salaire = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        required=False,
+        allow_null=True
+    )
+    service = serializers.PrimaryKeyRelatedField(
+        queryset=Service.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
+    def validate_email(self, value):
+        """Verifie que l'email est unique."""
+        if Personnel.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                f'Un personnel avec l\'email "{value}" existe deja. '
+                'Veuillez utiliser un autre email.'
+            )
+        return value
+
+    def validate_contact(self, value):
+        """Verifie le format du contact (9 chiffres, commence par 6)."""
+        import re
+        if not re.match(r'^6\d{8}$', value):
+            raise serializers.ValidationError(
+                'Le numero de telephone doit contenir exactement 9 chiffres '
+                'et commencer par 6. Exemple: 677123456'
+            )
+
+        if Personnel.objects.filter(contact=value).exists():
+            raise serializers.ValidationError(
+                f'Un personnel avec le contact "{value}" existe deja. '
+                'Veuillez utiliser un autre numero.'
+            )
+        return value
+
+    def validate_salaire(self, value):
+        """Verifie que le salaire est positif."""
+        if value is not None and value <= 0:
+            raise serializers.ValidationError(
+                'Le salaire doit etre strictement positif.'
+            )
+        return value
+
+    def create(self, validated_data):
+        """Cree un medecin avec mot de passe auto-genere."""
+        from apps.gestion_hospitaliere.utils import generate_robust_password
+        from apps.gestion_hospitaliere.tasks import send_personnel_password_email
+
+        # Forcer poste a 'medecin'
+        validated_data['poste'] = 'medecin'
+
+        # Generer username depuis email
+        email = validated_data['email']
+        username = email.split('@')[0]
+
+        # Assurer unicite du username
+        base_username = username
+        counter = 1
+        while Personnel.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        # Generer mot de passe robuste
+        temp_password = generate_robust_password()
+
+        # Preparer les donnees
+        validated_data['username'] = username
+        validated_data['password'] = make_password(temp_password)
+        validated_data.setdefault('statut', 'actif')  # Statut actif par defaut
+
+        # Creer le medecin
+        medecin = Medecin.objects.create(**validated_data)
+
+        # Envoyer email asynchrone
+        send_personnel_password_email.delay(medecin.id, temp_password)
+
+        return medecin
+
+
+class PersonnelUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer pour la mise a jour des champs de Personnel.
+
+    N'inclut PAS le mot de passe (utiliser endpoint dedie).
+    """
+
+    class Meta:
+        model = Personnel
+        fields = [
+            'nom', 'prenom', 'date_naissance', 'adresse', 'email',
+            'contact', 'poste', 'salaire', 'statut', 'service'
+        ]
+
+    def validate_email(self, value):
+        """Verifie que l'email est unique (sauf pour l'instance actuelle)."""
+        if self.instance and self.instance.email == value:
+            return value
+
+        if Personnel.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                f'Un personnel avec l\'email "{value}" existe deja. '
+                'Veuillez utiliser un autre email.'
+            )
+        return value
+
+    def validate_contact(self, value):
+        """Verifie le format et l'unicite du contact."""
+        import re
+        if not re.match(r'^6\d{8}$', value):
+            raise serializers.ValidationError(
+                'Le numero de telephone doit contenir exactement 9 chiffres '
+                'et commencer par 6. Exemple: 677123456'
+            )
+
+        if self.instance and self.instance.contact == value:
+            return value
+
+        if Personnel.objects.filter(contact=value).exists():
+            raise serializers.ValidationError(
+                f'Un personnel avec le contact "{value}" existe deja. '
+                'Veuillez utiliser un autre numero.'
+            )
+        return value
+
+    def validate_salaire(self, value):
+        """Verifie que le salaire est positif."""
+        if value is not None and value <= 0:
+            raise serializers.ValidationError(
+                'Le salaire doit etre strictement positif.'
+            )
+        return value
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """
+    Serializer pour le changement de mot de passe par l'utilisateur.
+
+    Requiert ancien mot de passe, nouveau mot de passe et confirmation.
+    """
+
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        """Verifie que les deux nouveaux mots de passe correspondent."""
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({
+                'confirm_password': 'Les mots de passe ne correspondent pas.'
+            })
+        return data
+
+    def validate_new_password(self, value):
+        """
+        Valide la robustesse du nouveau mot de passe.
+
+        Requis:
+        - Au moins 8 caracteres
+        - Au moins 1 majuscule
+        - Au moins 1 minuscule
+        - Au moins 1 chiffre
+        - Au moins 1 caractere special
+        """
+        if len(value) < 8:
+            raise serializers.ValidationError(
+                'Le mot de passe doit contenir au moins 8 caracteres.'
+            )
+
+        if not any(c.isupper() for c in value):
+            raise serializers.ValidationError(
+                'Le mot de passe doit contenir au moins une majuscule.'
+            )
+
+        if not any(c.islower() for c in value):
+            raise serializers.ValidationError(
+                'Le mot de passe doit contenir au moins une minuscule.'
+            )
+
+        if not any(c.isdigit() for c in value):
+            raise serializers.ValidationError(
+                'Le mot de passe doit contenir au moins un chiffre.'
+            )
+
+        if not any(c in string.punctuation for c in value):
+            raise serializers.ValidationError(
+                'Le mot de passe doit contenir au moins un caractere special.'
+            )
+
+        return value
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    """
+    Serializer pour la reinitialisation de mot de passe par un admin.
+
+    Requiert uniquement l'email du personnel.
+    """
+
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        """Verifie que le personnel existe."""
+        if not Personnel.objects.filter(email=value).exists():
+            raise serializers.ValidationError(
+                f'Aucun personnel trouve avec l\'email "{value}". '
+                'Veuillez verifier l\'email.'
+            )
+        return value
+
+
+class LoginSerializer(serializers.Serializer):
+    """
+    Serializer pour l'authentification.
+
+    Permet la connexion via:
+    - Email + mot de passe
+    - Matricule + mot de passe
+    """
+
+    username = serializers.CharField(
+        help_text="Email ou matricule du personnel"
+    )
+    password = serializers.CharField(
+        write_only=True,
+        style={'input_type': 'password'},
+        help_text="Mot de passe"
+    )
+
+    def validate(self, attrs):
+        """Valide les identifiants."""
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        if not username or not password:
+            raise serializers.ValidationError(
+                'Email/Matricule et mot de passe sont requis.'
+            )
+
+        return attrs
+
+
+class LogoutSerializer(serializers.Serializer):
+    """Serializer pour la deconnexion (optionnel si on utilise JWT)."""
+
+    refresh = serializers.CharField(
+        required=False,
+        help_text="Token refresh pour invalidation (optionnel)"
+    )

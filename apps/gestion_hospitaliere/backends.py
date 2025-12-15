@@ -22,6 +22,11 @@ class EmailOrMatriculeBackend(ModelBackend):
         """
         Authentifie un utilisateur via email ou matricule.
 
+        Bloque l'authentification si:
+        - Mot de passe = 'interdit' (compte bloque)
+        - Mot de passe expire (3 jours sans connexion)
+        - Compte inactif
+
         Args:
             username: Peut etre l'email ou le matricule
             password: Mot de passe de l'utilisateur
@@ -38,10 +43,23 @@ class EmailOrMatriculeBackend(ModelBackend):
                 Q(email__iexact=username) | Q(matricule__iexact=username)
             )
 
+            # Verifier si mot de passe expire
+            if user.check_password_expired():
+                # Bloquer le compte
+                user.block_expired_password()
+                return None
+
+            # Bloquer si mot de passe est "interdit"
+            if user.check_password('interdit'):
+                return None
+
             # Verifier le mot de passe
             if user.check_password(password):
                 # Verifier que le compte est actif
                 if user.is_active:
+                    # Mettre a jour statut de connexion
+                    user.statut_de_connexion = 'actif'
+                    user.save(update_fields=['statut_de_connexion'])
                     return user
                 return None
 
