@@ -35,6 +35,12 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'django_celery_beat',
+
+    # Local apps
+    'apps.gestion_hospitaliere',
+    'apps.suivi_patient',
+    'apps.comptabilite_matiere',
+    'apps.comptabilite_financiere',
 ]
 
 MIDDLEWARE = [
@@ -81,6 +87,14 @@ DATABASES = {
     }
 }
 
+# Custom User Model
+AUTH_USER_MODEL = 'gestion_hospitaliere.Personnel'
+
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'apps.gestion_hospitaliere.backends.EmailOrMatriculeBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -122,7 +136,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ==================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'apps.gestion_hospitaliere.authentication.CustomJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -166,6 +180,9 @@ SIMPLE_JWT = {
 
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
+
+    # Utiliser notre backend personnalisé pour l'authentification JWT
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
 }
 
 # ==================================================
@@ -185,7 +202,23 @@ SPECTACULAR_SETTINGS = {
     'LICENSE': {
         'name': 'Proprietary - ENSPY',
     },
+    # Configuration de l'authentification JWT pour Swagger
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'jwtAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            }
+        }
+    },
+    'SECURITY': [{'jwtAuth': []}],
+    # Configuration de Swagger UI
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
 }
+
 
 # ==================================================
 # CORS CONFIGURATION
@@ -224,3 +257,15 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 # PASSWORD EXPIRATION SETTINGS
 # ==================================================
 PASSWORD_EXPIRATION_DAYS = 3
+
+# ==================================================
+# CELERY BEAT SCHEDULE
+# ==================================================
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'check-expired-passwords': {
+        'task': 'apps.gestion_hospitaliere.tasks.check_expired_passwords',
+        'schedule': crontab(hour=0, minute=0),  # Quotidien a minuit
+    },
+}

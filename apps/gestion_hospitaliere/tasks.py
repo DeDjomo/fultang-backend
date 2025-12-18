@@ -1,0 +1,98 @@
+"""
+Taches Celery pour l'application gestion_hospitaliere.
+
+Author: DeDjomo
+Email: dedjomokarlyn@gmail.com
+Organization: ENSPY (Ecole Nationale Superieure Polytechnique de Yaounde)
+Date: 2025-12-15
+"""
+from celery import shared_task
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils import timezone
+
+
+@shared_task
+def send_personnel_password_email(personnel_id, password):
+    """
+    Envoie un email au personnel avec son mot de passe temporaire.
+
+    Le mot de passe est valide pendant 3 jours. Apres ce delai, si le personnel
+    ne s'est pas connecte, le compte sera bloque.
+
+    Args:
+        personnel_id (int): ID du personnel
+        password (str): Mot de passe temporaire en clair
+
+    Returns:
+        str: Message de confirmation ou d'erreur
+    """
+    from apps.gestion_hospitaliere.models import Personnel
+
+    try:
+        personnel = Personnel.objects.get(id=personnel_id)
+
+        subject = 'Bienvenue a Fultang Hospital - Vos identifiants de connexion'
+        message = f"""
+Bonjour {personnel.prenom} {personnel.nom},
+
+Votre compte a ete cree avec succes dans le systeme de gestion Fultang Hospital.
+
+Vos identifiants de connexion:
+- Email/Matricule: {personnel.email} ou {personnel.matricule}
+- Mot de passe: {password}
+
+IMPORTANT:
+- Ce mot de passe est valide pendant 3 jours.
+- Veuillez vous connecter et changer votre mot de passe dans les 3 jours.
+- Passe ce delai, votre compte sera bloque et vous devrez contacter l'administrateur.
+
+Pour vous connecter, utilisez votre email ou matricule avec le mot de passe ci-dessus.
+
+Cordialement,
+L'equipe Fultang Hospital
+"""
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [personnel.email],
+            fail_silently=False,
+        )
+
+        return f"Email envoye a {personnel.email}"
+
+    except Personnel.DoesNotExist:
+        return f"Personnel avec ID {personnel_id} introuvable"
+    except Exception as e:
+        return f"Erreur lors de l'envoi de l'email: {str(e)}"
+
+
+@shared_task
+def check_expired_passwords():
+    """
+    Tache periodique pour verifier et bloquer les mots de passe expires.
+
+    Cette tache doit etre executee quotidiennement via Celery Beat.
+    Elle recherche tous les personnels qui n'ont pas effectue leur premiere
+    connexion et dont le mot de passe a expire (3 jours), puis bloque leur compte.
+
+    Returns:
+        str: Nombre de comptes bloques
+    """
+    from apps.gestion_hospitaliere.models import Personnel
+
+    expired_personnel = Personnel.objects.filter(
+        first_login_done=False,
+        password_expiry_date__lt=timezone.now()
+    )
+
+    count = 0
+    for personnel in expired_personnel:
+        # Bloquer le compte en definissant le mot de passe a 'interdit'
+        personnel.set_password('interdit')
+        personnel.save(update_fields=['password'])
+        count += 1
+
+    return f"Bloque {count} mot(s) de passe expire(s)"
