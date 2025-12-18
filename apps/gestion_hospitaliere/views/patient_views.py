@@ -13,7 +13,8 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from apps.suivi_patient.models import Patient, RendezVous
+from apps.suivi_patient.models import Patient, RendezVous, Session
+from apps.gestion_hospitaliere.models import Service
 from apps.gestion_hospitaliere.serializers import (
     PatientSerializer,
     PatientCreateSerializer,
@@ -375,6 +376,115 @@ class PatientViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     'error': 'Erreur lors de la recuperation des patients hospitalises',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Ouvre une session pour un patient",
+        description="Cree une nouvelle session de suivi pour un patient dans un service specifique",
+        request={
+            'type': 'object',
+            'properties': {
+                'id_patient': {'type': 'integer', 'description': 'ID du patient'},
+                'id_service': {'type': 'integer', 'description': 'ID du service'},
+                'motif': {'type': 'string', 'description': 'Motif de la consultation (optionnel)'}
+            },
+            'required': ['id_patient', 'id_service']
+        },
+        responses={
+            201: OpenApiResponse(description='Session creee avec succes'),
+            400: OpenApiResponse(description='Donnees invalides'),
+            404: OpenApiResponse(description='Patient ou service non trouve')
+        }
+    )
+    @action(detail=False, methods=['post'], url_path='ouvrir-session')
+    def ouvrir_session(self, request):
+        """
+        Ouvre une session pour un patient.
+
+        Cree une session avec:
+        - id_patient: patient concerne
+        - id_personnel: personnel qui ouvre la session (utilisateur authentifie)
+        - service_courant: nom du service
+        - personnel_responsable: poste de base du service (infirmier par defaut)
+        - statut: 'en cours'
+        - situation_patient: 'en attente'
+        """
+        try:
+            id_patient = request.data.get('id_patient')
+            id_service = request.data.get('id_service')
+            motif = request.data.get('motif', '')  # Optionnel, non stocke dans le modele
+
+            # Validation
+            if not id_patient or not id_service:
+                return Response(
+                    {
+                        'error': 'Donnees manquantes',
+                        'detail': 'Les champs id_patient et id_service sont obligatoires.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Verifier que le patient existe
+            try:
+                patient = Patient.objects.get(id=id_patient)
+            except Patient.DoesNotExist:
+                return Response(
+                    {
+                        'error': 'Patient non trouve',
+                        'detail': f'Aucun patient trouve avec l\'ID {id_patient}.'
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Verifier que le service existe
+            try:
+                service = Service.objects.get(id=id_service)
+            except Service.DoesNotExist:
+                return Response(
+                    {
+                        'error': 'Service non trouve',
+                        'detail': f'Aucun service trouve avec l\'ID {id_service}.'
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            # Creer la session
+            session = Session.objects.create(
+                id_patient_id=id_patient,
+                id_personnel=request.user,
+                service_courant=service.nom_service,
+                personnel_responsable='infirmier',  # Par defaut, le patient va voir l'infirmier en premier
+                statut='en cours',
+                situation_patient='en attente'
+            )
+
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Session ouverte avec succes.',
+                    'data': {
+                        'id': session.id,
+                        'id_patient': session.id_patient.id,
+                        'patient_nom': session.id_patient.nom,
+                        'patient_prenom': session.id_patient.prenom,
+                        'patient_matricule': session.id_patient.matricule,
+                        'service_courant': session.service_courant,
+                        'personnel_responsable': session.personnel_responsable,
+                        'statut': session.statut,
+                        'situation_patient': session.situation_patient,
+                        'debut': session.debut
+                    }
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Erreur lors de l\'ouverture de la session',
                     'detail': str(e)
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

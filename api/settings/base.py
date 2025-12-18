@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     # Local apps
     'apps.gestion_hospitaliere',
     'apps.suivi_patient',
+    'apps.comptabilite_matiere',
+    'apps.comptabilite_financiere',
 ]
 
 MIDDLEWARE = [
@@ -134,7 +136,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ==================================================
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'apps.gestion_hospitaliere.authentication.CustomJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -178,6 +180,9 @@ SIMPLE_JWT = {
 
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
+
+    # Utiliser notre backend personnalisé pour l'authentification JWT
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
 }
 
 # ==================================================
@@ -197,7 +202,23 @@ SPECTACULAR_SETTINGS = {
     'LICENSE': {
         'name': 'Proprietary - ENSPY',
     },
+    # Configuration de l'authentification JWT pour Swagger
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'jwtAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            }
+        }
+    },
+    'SECURITY': [{'jwtAuth': []}],
+    # Configuration de Swagger UI
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
 }
+
 
 # ==================================================
 # CORS CONFIGURATION

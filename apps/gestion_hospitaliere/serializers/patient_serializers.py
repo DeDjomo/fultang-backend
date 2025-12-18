@@ -118,7 +118,13 @@ class PatientCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         """Cree un nouveau patient."""
-        patient = Patient.objects.create(**validated_data)
+        # Extraire id_personnel et l'utiliser comme id_personnel_id
+        id_personnel = validated_data.pop('id_personnel')
+
+        patient = Patient.objects.create(
+            id_personnel_id=id_personnel,
+            **validated_data
+        )
         return patient
 
 

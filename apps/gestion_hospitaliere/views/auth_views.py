@@ -14,7 +14,7 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 from apps.gestion_hospitaliere.serializers import LoginSerializer, LogoutSerializer
-from apps.gestion_hospitaliere.models import Personnel
+from apps.gestion_hospitaliere.models import Personnel, Admin
 
 
 @extend_schema(
@@ -135,6 +135,25 @@ def login_view(request):
     refresh = RefreshToken.for_user(user)
     access = refresh.access_token
 
+    # Construire la reponse selon le type d'utilisateur
+    if isinstance(user, Admin):
+        user_data = {
+            'id': user.id,
+            'login': user.login,
+            'role': 'admin'
+        }
+    else:
+        user_data = {
+            'id': user.id,
+            'email': user.email,
+            'matricule': user.matricule,
+            'nom': user.nom,
+            'prenom': user.prenom,
+            'poste': user.poste,
+            'statut_de_connexion': user.statut_de_connexion,
+            'role': 'personnel'
+        }
+
     return Response(
         {
             'success': True,
@@ -142,15 +161,7 @@ def login_view(request):
             'data': {
                 'access': str(access),
                 'refresh': str(refresh),
-                'user': {
-                    'id': user.id,
-                    'email': user.email,
-                    'matricule': user.matricule,
-                    'nom': user.nom,
-                    'prenom': user.prenom,
-                    'poste': user.poste,
-                    'statut_de_connexion': user.statut_de_connexion,
-                }
+                'user': user_data
             }
         },
         status=status.HTTP_200_OK
