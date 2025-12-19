@@ -62,7 +62,11 @@ class PrescriptionMedicamentCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         """Cree une nouvelle prescription de medicaments."""
-        prescription = PrescriptionMedicament.objects.create(**validated_data)
+        prescription = PrescriptionMedicament.objects.create(
+            id_medecin_id=validated_data['id_medecin'],
+            liste_medicaments=validated_data['liste_medicaments'],
+            id_session_id=validated_data['id_session']
+        )
         return prescription
 
 
@@ -112,7 +116,11 @@ class PrescriptionExamenCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         """Cree une nouvelle prescription d'examen."""
-        prescription = PrescriptionExamen.objects.create(**validated_data)
+        prescription = PrescriptionExamen.objects.create(
+            id_medecin_id=validated_data['id_medecin'],
+            nom_examen=validated_data['nom_examen'],
+            id_session_id=validated_data['id_session']
+        )
         return prescription
 
 
@@ -159,7 +167,11 @@ class ResultatExamenCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         """Cree un nouveau resultat d'examen."""
-        resultat = ResultatExamen.objects.create(**validated_data)
+        resultat = ResultatExamen.objects.create(
+            id_medecin_id=validated_data['id_medecin'],
+            resultat=validated_data['resultat'],
+            id_prescription_id=validated_data['id_prescription']
+        )
         return resultat
 
 
@@ -235,7 +247,11 @@ class HospitalisationCreateSerializer(serializers.Serializer):
         Le modele Hospitalisation decremente automatiquement
         nombre_places_dispo dans sa methode save().
         """
-        hospitalisation = Hospitalisation.objects.create(**validated_data)
+        hospitalisation = Hospitalisation.objects.create(
+            id_session_id=validated_data['id_session'],
+            id_chambre_id=validated_data['id_chambre'],
+            id_medecin_id=validated_data['id_medecin']
+        )
         return hospitalisation
 
 

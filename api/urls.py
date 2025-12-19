@@ -33,6 +33,8 @@ urlpatterns = [
     # Applications URLs
     path('api/', include('apps.gestion_hospitaliere.urls')),
     path('api/', include('apps.suivi_patient.urls')),
+    path('api/', include('apps.comptabilite_matiere.urls')),
+    path('api/', include('apps.comptabilite_financiere.urls')),
 
     # Documentation API (Swagger/OpenAPI)
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

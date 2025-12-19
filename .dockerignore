@@ -54,3 +54,6 @@ docs/_build/
 dist/
 build/
 *.egg-info/
+
+
+ihm_fultang-frontend-v1/
