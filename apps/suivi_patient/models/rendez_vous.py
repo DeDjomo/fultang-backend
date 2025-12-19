@@ -14,6 +14,12 @@ from .patient import Patient
 class RendezVous(models.Model):
     """Modele pour les rendez-vous."""
 
+    STATUT_CHOICES = [
+        ('en_attente', 'En attente'),
+        ('effectue', 'Effectué'),
+        ('annule', 'Annulé'),
+    ]
+
     date_heure = models.DateTimeField()
     id_medecin = models.ForeignKey(
         Medecin,
@@ -25,6 +31,11 @@ class RendezVous(models.Model):
         on_delete=models.PROTECT,
         related_name='rendez_vous'
     )
+    statut = models.CharField(
+        max_length=20,
+        choices=STATUT_CHOICES,
+        default='en_attente'
+    )
 
     class Meta:
         ordering = ['date_heure']
@@ -33,3 +44,4 @@ class RendezVous(models.Model):
 
     def __str__(self):
         return f"RDV {self.id} - {self.id_patient.matricule} avec Dr. {self.id_medecin.nom}"
+
