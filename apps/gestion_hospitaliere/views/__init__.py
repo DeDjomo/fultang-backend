@@ -22,6 +22,7 @@ from .prescription_views import (
     HospitalisationViewSet,
     ChambreViewSet,
 )
+from .session_views import SessionViewSet
 
 __all__ = [
     'AdminViewSet',
@@ -39,4 +40,5 @@ __all__ = [
     'ResultatExamenViewSet',
     'HospitalisationViewSet',
     'ChambreViewSet',
+    'SessionViewSet',
 ]

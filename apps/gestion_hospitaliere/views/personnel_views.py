@@ -225,6 +225,9 @@ class PersonnelViewSet(viewsets.ModelViewSet):
         POST /personnel/change-password/
         Body: {old_password, new_password, confirm_password}
         """
+        from django.contrib.auth.hashers import check_password, make_password
+        from apps.gestion_hospitaliere.models import Admin
+        
         user = request.user
         serializer = self.get_serializer(data=request.data)
 
@@ -238,21 +241,38 @@ class PersonnelViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Verifier ancien mot de passe
-        if not user.check_password(serializer.validated_data['old_password']):
-            return Response(
-                {
-                    'error': 'Mot de passe incorrect',
-                    'detail': 'L\'ancien mot de passe est incorrect. Veuillez reessayer.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Definir nouveau mot de passe
-        user.set_password(serializer.validated_data['new_password'])
-        user.first_login_done = True  # Marquer premiere connexion faite
-        user.password_expiry_date = None  # Effacer expiration
-        user.save()
+        # Verifier ancien mot de passe selon le type d'utilisateur
+        old_password = serializer.validated_data['old_password']
+        new_password = serializer.validated_data['new_password']
+        
+        if isinstance(user, Admin):
+            # Pour Admin, verifier avec check_password de hashers
+            if not check_password(old_password, user.password):
+                return Response(
+                    {
+                        'error': 'Mot de passe incorrect',
+                        'detail': 'L\'ancien mot de passe est incorrect. Veuillez reessayer.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Definir nouveau mot de passe pour Admin
+            user.password = make_password(new_password)
+            user.save()
+        else:
+            # Pour Personnel (AbstractUser), utiliser check_password standard
+            if not user.check_password(old_password):
+                return Response(
+                    {
+                        'error': 'Mot de passe incorrect',
+                        'detail': 'L\'ancien mot de passe est incorrect. Veuillez reessayer.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Definir nouveau mot de passe
+            user.set_password(new_password)
+            user.first_login_done = True  # Marquer premiere connexion faite
+            user.password_expiry_date = None  # Effacer expiration
+            user.save()
 
         return Response(
             {
