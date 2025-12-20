@@ -23,6 +23,7 @@ from apps.gestion_hospitaliere.views import (
     HospitalisationViewSet,
     ChambreViewSet,
     SessionViewSet,
+    DossierPatientViewSet,
     login_view,
     logout_view,
 )
@@ -43,6 +44,7 @@ router.register(r'resultats-examens', ResultatExamenViewSet, basename='resultat-
 router.register(r'hospitalisations', HospitalisationViewSet, basename='hospitalisation')
 router.register(r'chambres', ChambreViewSet, basename='chambre')
 router.register(r'sessions', SessionViewSet, basename='session')
+router.register(r'dossiers-patients', DossierPatientViewSet, basename='dossier-patient')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -177,3 +177,5 @@ Note : lorsque l'on enregistre une hospitalisation avec l'id d'une chambre, le n
 
 Les tests unitaires!!!!!!!!
 Un endpoint pour tester si l'api est fonctionnelle (tester la santé de l'api) avant l'envoie de requêtes.
+
+On ne peut pas creer une nouvelle session avec un patient donné s'il existe deja une session avec ce patient et  dont le statut n'est pas : 'terminee' 
