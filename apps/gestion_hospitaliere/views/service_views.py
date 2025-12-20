@@ -172,15 +172,57 @@ class ServiceViewSet(viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
-        """Supprime un service."""
+        """Supprime un service avec suppression en cascade des objets liés."""
         instance = self.get_object()
         service_nom = instance.nom_service
+
+        # Suppression en cascade manuelle des objets liés
+        # 1. Supprimer tous les personnels du service (qui supprimera leurs patients, sessions, etc.)
+        personnels_count = instance.personnels.count()
+        for personnel in instance.personnels.all():
+            # Supprimer les objets liés au personnel
+            for patient in personnel.patients_enregistres.all():
+                patient.rendez_vous.all().delete()
+                patient.sessions.all().delete()
+                patient.delete()
+            personnel.sessions_ouvertes.all().delete()
+            if hasattr(personnel, 'besoins_emis'):
+                personnel.besoins_emis.all().delete()
+            if hasattr(personnel, 'sorties_effectuees'):
+                personnel.sorties_effectuees.all().delete()
+            personnel.delete()
+
+        # 2. Supprimer tous les médecins du service (héritage de Personnel)
+        medecins_count = Medecin.objects.filter(service=instance).count()
+        for medecin in Medecin.objects.filter(service=instance):
+            # Supprimer les rendez-vous du médecin
+            medecin.rendez_vous.all().delete()
+            # Supprimer les hospitalisations supervisées par ce médecin
+            if hasattr(medecin, 'hospitalisations'):
+                medecin.hospitalisations.all().delete()
+            # Supprimer les objets liés au personnel (patients, sessions, etc.)
+            for patient in medecin.patients_enregistres.all():
+                patient.rendez_vous.all().delete()
+                patient.sessions.all().delete()
+                patient.delete()
+            medecin.sessions_ouvertes.all().delete()
+            if hasattr(medecin, 'besoins_emis'):
+                medecin.besoins_emis.all().delete()
+            if hasattr(medecin, 'sorties_effectuees'):
+                medecin.sorties_effectuees.all().delete()
+            medecin.delete()
+
+        # 3. Supprimer le service
         self.perform_destroy(instance)
 
         return Response(
             {
                 'success': True,
-                'message': f'Service "{service_nom}" supprime avec succes.'
+                'message': f'Service "{service_nom}" supprime avec succes.',
+                'details': {
+                    'personnels_supprimes': personnels_count,
+                    'medecins_supprimes': medecins_count
+                }
             },
             status=status.HTTP_200_OK
         )

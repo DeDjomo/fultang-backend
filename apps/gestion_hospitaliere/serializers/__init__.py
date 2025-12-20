@@ -46,6 +46,11 @@ from .medecin_serializers import (
     ChambreSerializer,
     ChambreCreateSerializer,
 )
+from .dossier_patient_serializers import (
+    DossierPatientSerializer,
+    DossierPatientCreateSerializer,
+    DossierPatientUpdateSerializer,
+)
 
 __all__ = [
     'AdminSerializer',
@@ -80,4 +85,7 @@ __all__ = [
     'HospitalisationCreateSerializer',
     'ChambreSerializer',
     'ChambreCreateSerializer',
+    'DossierPatientSerializer',
+    'DossierPatientCreateSerializer',
+    'DossierPatientUpdateSerializer',
 ]

@@ -230,17 +230,31 @@ class PatientViewSet(viewsets.ModelViewSet):
         }
     )
     def destroy(self, request, *args, **kwargs):
-        """Supprime un patient."""
+        """Supprime un patient avec suppression en cascade des objets liés."""
         try:
             patient = self.get_object()
             patient_matricule = patient.matricule
 
+            # Suppression en cascade manuelle des objets liés
+            # 1. Supprimer les rendez-vous du patient
+            rendez_vous_count = patient.rendez_vous.count()
+            patient.rendez_vous.all().delete()
+
+            # 2. Supprimer les sessions du patient (qui supprimera automatiquement les hospitalisations via CASCADE)
+            sessions_count = patient.sessions.count()
+            patient.sessions.all().delete()
+
+            # 3. Supprimer le patient
             patient.delete()
 
             return Response(
                 {
                     'success': True,
-                    'message': f'Patient {patient_matricule} supprime avec succes.'
+                    'message': f'Patient {patient_matricule} supprime avec succes.',
+                    'details': {
+                        'rendez_vous_supprimes': rendez_vous_count,
+                        'sessions_supprimees': sessions_count
+                    }
                 },
                 status=status.HTTP_200_OK
             )

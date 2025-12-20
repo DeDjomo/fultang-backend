@@ -380,6 +380,64 @@ class SessionViewSet(viewsets.ModelViewSet):
             )
 
     @extend_schema(
+        summary="Supprime une session",
+        description="Supprime une session avec tous ses objets liés",
+        responses={200: {'type': 'object', 'properties': {'success': {'type': 'boolean'}, 'message': {'type': 'string'}}}}
+    )
+    def destroy(self, request, *args, **kwargs):
+        """Supprime une session avec suppression en cascade des objets liés."""
+        try:
+            session = self.get_object()
+            session_id = session.id
+
+            # Les objets liés avec CASCADE sont déjà supprimés automatiquement:
+            # - hospitalisations (CASCADE)
+            # - observations_medicales (CASCADE)
+            # - prescriptions_examens (CASCADE)
+            # - prescriptions_medicaments (CASCADE)
+
+            # Compter avant suppression
+            hospitalisations_count = session.hospitalisations.count() if hasattr(session, 'hospitalisations') else 0
+            observations_count = session.observations_medicales.count() if hasattr(session, 'observations_medicales') else 0
+            prescriptions_examens_count = session.prescriptions_examens.count() if hasattr(session, 'prescriptions_examens') else 0
+            prescriptions_medicaments_count = session.prescriptions_medicaments.count() if hasattr(session, 'prescriptions_medicaments') else 0
+
+            # Supprimer la session (supprimera automatiquement les objets CASCADE)
+            session.delete()
+
+            return Response(
+                {
+                    'success': True,
+                    'message': f'Session {session_id} supprimee avec succes.',
+                    'details': {
+                        'hospitalisations_supprimees': hospitalisations_count,
+                        'observations_supprimees': observations_count,
+                        'prescriptions_examens_supprimees': prescriptions_examens_count,
+                        'prescriptions_medicaments_supprimees': prescriptions_medicaments_count
+                    }
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Session.DoesNotExist:
+            return Response(
+                {
+                    'error': 'Session non trouvee',
+                    'detail': f'Aucune session trouvee avec l\'ID {kwargs.get("pk")}.'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Erreur lors de la suppression de la session',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
         summary="Liste patients en attente pour un poste",
         description="Patients en attente pour un poste (infirmier/medecin) dans un service",
         parameters=[
@@ -438,6 +496,203 @@ class SessionViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     'error': 'Erreur lors de la recuperation des patients en attente',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Liste patients en attente pour l'infirmier",
+        description="Retourne les patients en attente pour un infirmier dans un service donné",
+        parameters=[
+            OpenApiParameter(
+                name='service',
+                description='Nom du service',
+                required=True,
+                type=str
+            ),
+        ],
+        responses={200: OpenApiResponse(description='Liste des patients en attente')}
+    )
+    @action(detail=False, methods=['get'], url_path='patients-attente-infirmier')
+    def patients_attente_infirmier(self, request):
+        """
+        Liste les patients en attente pour un infirmier dans un service.
+        Selon description.md ligne 163.
+        """
+        try:
+            service = request.query_params.get('service')
+
+            if not service:
+                return Response(
+                    {
+                        'error': 'Parametre manquant',
+                        'detail': 'Le parametre "service" est obligatoire.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Filtrer selon description.md:
+            # - statut != 'terminee'
+            # - situation_patient = 'en attente'
+            # - personnel_responsable = 'infirmier'
+            # - service_courant = service fourni
+            queryset = self.get_queryset().filter(
+                service_courant__iexact=service,
+                personnel_responsable='infirmier',
+                situation_patient='en attente'
+            ).exclude(statut='terminee')
+
+            # Construire la liste des patients avec id_session
+            patients_data = []
+            for session in queryset:
+                patient = session.id_patient
+                patients_data.append({
+                    'id': patient.id,
+                    'matricule': patient.matricule,
+                    'nom': patient.nom,
+                    'prenom': patient.prenom,
+                    'date_naissance': patient.date_naissance,
+                    'contact': patient.contact,
+                    'id_session': session.id,
+                    'service_courant': session.service_courant,
+                    'debut_session': session.debut
+                })
+
+            return Response(
+                {
+                    'success': True,
+                    'count': len(patients_data),
+                    'data': patients_data
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Erreur lors de la recuperation des patients en attente',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Liste patients en attente pour le médecin",
+        description="Retourne les patients en attente pour un médecin dans un service donné",
+        parameters=[
+            OpenApiParameter(
+                name='service',
+                description='Nom du service',
+                required=True,
+                type=str
+            ),
+        ],
+        responses={200: OpenApiResponse(description='Liste des patients en attente')}
+    )
+    @action(detail=False, methods=['get'], url_path='patients-attente-medecin')
+    def patients_attente_medecin(self, request):
+        """
+        Liste les patients en attente pour un médecin dans un service.
+        Selon description.md ligne 170.
+        """
+        try:
+            service = request.query_params.get('service')
+
+            if not service:
+                return Response(
+                    {
+                        'error': 'Parametre manquant',
+                        'detail': 'Le parametre "service" est obligatoire.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Filtrer selon description.md:
+            # - statut != 'terminee'
+            # - situation_patient = 'en attente'
+            # - personnel_responsable = 'medecin'
+            # - service_courant = service fourni
+            queryset = self.get_queryset().filter(
+                service_courant__iexact=service,
+                personnel_responsable='medecin',
+                situation_patient='en attente'
+            ).exclude(statut='terminee')
+
+            # Construire la liste des patients avec id_session
+            patients_data = []
+            for session in queryset:
+                patient = session.id_patient
+                patients_data.append({
+                    'id': patient.id,
+                    'matricule': patient.matricule,
+                    'nom': patient.nom,
+                    'prenom': patient.prenom,
+                    'date_naissance': patient.date_naissance,
+                    'contact': patient.contact,
+                    'id_session': session.id,
+                    'service_courant': session.service_courant,
+                    'debut_session': session.debut
+                })
+
+            return Response(
+                {
+                    'success': True,
+                    'count': len(patients_data),
+                    'data': patients_data
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Erreur lors de la recuperation des patients en attente',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Mettre une session en attente",
+        description="Change le statut d'une session vers 'en attente'",
+        responses={200: SessionSerializer}
+    )
+    @action(detail=True, methods=['post'], url_path='mettre-en-attente')
+    def mettre_en_attente(self, request, pk=None):
+        """
+        Change le statut d'une session vers 'en attente'.
+        Endpoint requis selon la specification point 4.
+        """
+        try:
+            session = self.get_object()
+            session.statut = 'en attente'
+            session.save()
+
+            serializer = SessionSerializer(session)
+
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Session mise en attente avec succes.',
+                    'data': serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+
+        except Session.DoesNotExist:
+            return Response(
+                {
+                    'error': 'Session non trouvee',
+                    'detail': f'Aucune session trouvee avec l\'ID {pk}.'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Erreur lors de la mise en attente de la session',
                     'detail': str(e)
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

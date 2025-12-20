@@ -199,15 +199,48 @@ class PersonnelViewSet(viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
-        """Supprime un personnel."""
+        """Supprime un personnel avec suppression en cascade des objets liés."""
         instance = self.get_object()
         nom_complet = f"{instance.nom} {instance.prenom}"
+
+        # Suppression en cascade manuelle des objets liés
+        # 1. Supprimer les patients enregistrés par ce personnel
+        patients_count = instance.patients_enregistres.count()
+        for patient in instance.patients_enregistres.all():
+            # Supprimer les objets liés au patient
+            patient.rendez_vous.all().delete()
+            patient.sessions.all().delete()
+            patient.delete()
+
+        # 2. Supprimer les sessions ouvertes par ce personnel
+        sessions_count = instance.sessions_ouvertes.count()
+        instance.sessions_ouvertes.all().delete()
+
+        # 3. Supprimer les besoins émis par ce personnel (comptabilité matière)
+        besoins_count = 0
+        if hasattr(instance, 'besoins_emis'):
+            besoins_count = instance.besoins_emis.count()
+            instance.besoins_emis.all().delete()
+
+        # 4. Supprimer les sorties effectuées par ce personnel (comptabilité matière)
+        sorties_count = 0
+        if hasattr(instance, 'sorties_effectuees'):
+            sorties_count = instance.sorties_effectuees.count()
+            instance.sorties_effectuees.all().delete()
+
+        # 5. Supprimer le personnel
         self.perform_destroy(instance)
 
         return Response(
             {
                 'success': True,
-                'message': f'Personnel "{nom_complet}" supprime avec succes.'
+                'message': f'Personnel "{nom_complet}" supprime avec succes.',
+                'details': {
+                    'patients_supprimes': patients_count,
+                    'sessions_supprimees': sessions_count,
+                    'besoins_supprimes': besoins_count,
+                    'sorties_supprimees': sorties_count
+                }
             },
             status=status.HTTP_200_OK
         )
