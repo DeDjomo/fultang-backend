@@ -83,14 +83,22 @@ class MedecinExtendedViewSet(viewsets.ViewSet):
                 statut='terminee'
             )
 
-            # Construire la reponse avec id_session pour chaque patient
+            # Construire la reponse avec donnees patients aplaties + id_session
             result = []
             for session in sessions:
-                patient_data = PatientSerializer(session.id_patient).data
-                result.append({
+                patient = session.id_patient
+                patient_data = {
+                    'id': patient.id,
+                    'nom': patient.nom,
+                    'prenom': patient.prenom,
+                    'matricule': patient.matricule,
+                    'contact': patient.contact,
+                    'date_naissance': patient.date_naissance,
+                    'age': patient.get_age() if hasattr(patient, 'get_age') else None,
                     'id_session': session.id,
-                    'patient': patient_data
-                })
+                    'debut_session': session.debut,
+                }
+                result.append(patient_data)
 
             return Response(
                 {
@@ -241,8 +249,8 @@ class MedecinExtendedViewSet(viewsets.ViewSet):
             404: OpenApiResponse(description='Patient non trouve')
         }
     )
-    @action(detail=True, methods=['get'], url_path='dossier-patient')
-    def consulter_dossier_patient(self, request, pk=None):
+    @action(detail=False, methods=['get'], url_path='consulter-dossier/(?P<patient_id>[^/.]+)')
+    def consulter_dossier_patient(self, request, patient_id=None):
         """
         Consulte le dossier complet d'un patient.
 
@@ -251,7 +259,6 @@ class MedecinExtendedViewSet(viewsets.ViewSet):
         - Retourne toutes les informations du patient + historique
         """
         try:
-            patient_id = pk
 
             try:
                 patient = Patient.objects.get(id=patient_id)

@@ -229,6 +229,8 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
     'http://localhost:5173',  # Vite dev server
     'http://127.0.0.1:5173',  # Vite dev server
+    'http://localhost:9000',  # Frontend dev server
+    'http://127.0.0.1:9000',  # Frontend dev server
 ]
 
 # ==================================================
