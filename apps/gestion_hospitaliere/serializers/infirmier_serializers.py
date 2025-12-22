@@ -107,7 +107,18 @@ class ObservationMedicaleCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         """Cree une nouvelle observation medicale."""
-        observation = ObservationMedicale.objects.create(**validated_data)
+        from apps.gestion_hospitaliere.models import Personnel
+        
+        # Recuperer les instances d'objet depuis les IDs
+        personnel = Personnel.objects.get(id=validated_data['id_personnel'])
+        session = Session.objects.get(id=validated_data['id_session'])
+        
+        # Creer l'observation avec les instances
+        observation = ObservationMedicale.objects.create(
+            id_personnel=personnel,
+            observation=validated_data['observation'],
+            id_session=session
+        )
         return observation
 
 

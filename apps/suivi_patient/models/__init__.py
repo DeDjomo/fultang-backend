@@ -14,6 +14,7 @@ from .prescription_examen import PrescriptionExamen
 from .resultat_examen import ResultatExamen
 from .hospitalisation import Hospitalisation
 from .rendez_vous import RendezVous
+from .dossier_patient import DossierPatient
 
 __all__ = [
     'Patient',
@@ -24,4 +25,5 @@ __all__ = [
     'ResultatExamen',
     'Hospitalisation',
     'RendezVous',
+    'DossierPatient',
 ]

@@ -199,15 +199,48 @@ class PersonnelViewSet(viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
-        """Supprime un personnel."""
+        """Supprime un personnel avec suppression en cascade des objets liés."""
         instance = self.get_object()
         nom_complet = f"{instance.nom} {instance.prenom}"
+
+        # Suppression en cascade manuelle des objets liés
+        # 1. Supprimer les patients enregistrés par ce personnel
+        patients_count = instance.patients_enregistres.count()
+        for patient in instance.patients_enregistres.all():
+            # Supprimer les objets liés au patient
+            patient.rendez_vous.all().delete()
+            patient.sessions.all().delete()
+            patient.delete()
+
+        # 2. Supprimer les sessions ouvertes par ce personnel
+        sessions_count = instance.sessions_ouvertes.count()
+        instance.sessions_ouvertes.all().delete()
+
+        # 3. Supprimer les besoins émis par ce personnel (comptabilité matière)
+        besoins_count = 0
+        if hasattr(instance, 'besoins_emis'):
+            besoins_count = instance.besoins_emis.count()
+            instance.besoins_emis.all().delete()
+
+        # 4. Supprimer les sorties effectuées par ce personnel (comptabilité matière)
+        sorties_count = 0
+        if hasattr(instance, 'sorties_effectuees'):
+            sorties_count = instance.sorties_effectuees.count()
+            instance.sorties_effectuees.all().delete()
+
+        # 5. Supprimer le personnel
         self.perform_destroy(instance)
 
         return Response(
             {
                 'success': True,
-                'message': f'Personnel "{nom_complet}" supprime avec succes.'
+                'message': f'Personnel "{nom_complet}" supprime avec succes.',
+                'details': {
+                    'patients_supprimes': patients_count,
+                    'sessions_supprimees': sessions_count,
+                    'besoins_supprimes': besoins_count,
+                    'sorties_supprimees': sorties_count
+                }
             },
             status=status.HTTP_200_OK
         )
@@ -225,6 +258,9 @@ class PersonnelViewSet(viewsets.ModelViewSet):
         POST /personnel/change-password/
         Body: {old_password, new_password, confirm_password}
         """
+        from django.contrib.auth.hashers import check_password, make_password
+        from apps.gestion_hospitaliere.models import Admin
+        
         user = request.user
         serializer = self.get_serializer(data=request.data)
 
@@ -238,21 +274,38 @@ class PersonnelViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Verifier ancien mot de passe
-        if not user.check_password(serializer.validated_data['old_password']):
-            return Response(
-                {
-                    'error': 'Mot de passe incorrect',
-                    'detail': 'L\'ancien mot de passe est incorrect. Veuillez reessayer.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Definir nouveau mot de passe
-        user.set_password(serializer.validated_data['new_password'])
-        user.first_login_done = True  # Marquer premiere connexion faite
-        user.password_expiry_date = None  # Effacer expiration
-        user.save()
+        # Verifier ancien mot de passe selon le type d'utilisateur
+        old_password = serializer.validated_data['old_password']
+        new_password = serializer.validated_data['new_password']
+        
+        if isinstance(user, Admin):
+            # Pour Admin, verifier avec check_password de hashers
+            if not check_password(old_password, user.password):
+                return Response(
+                    {
+                        'error': 'Mot de passe incorrect',
+                        'detail': 'L\'ancien mot de passe est incorrect. Veuillez reessayer.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Definir nouveau mot de passe pour Admin
+            user.password = make_password(new_password)
+            user.save()
+        else:
+            # Pour Personnel (AbstractUser), utiliser check_password standard
+            if not user.check_password(old_password):
+                return Response(
+                    {
+                        'error': 'Mot de passe incorrect',
+                        'detail': 'L\'ancien mot de passe est incorrect. Veuillez reessayer.'
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Definir nouveau mot de passe
+            user.set_password(new_password)
+            user.first_login_done = True  # Marquer premiere connexion faite
+            user.password_expiry_date = None  # Effacer expiration
+            user.save()
 
         return Response(
             {

@@ -20,6 +20,12 @@ class Materiel(models.Model):
         primary_key=True,
         verbose_name="Identifiant du matériel"
     )
+    code_materiel = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name="Code du matériel",
+        help_text="Code unique d'identification du matériel"
+    )
     
     nom_Materiel = models.CharField(
         max_length=200,

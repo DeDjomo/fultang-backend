@@ -151,6 +151,7 @@ def login_view(request):
             'prenom': user.prenom,
             'poste': user.poste,
             'statut_de_connexion': user.statut_de_connexion,
+            'first_login_done': user.first_login_done,
             'role': 'personnel'
         }
 

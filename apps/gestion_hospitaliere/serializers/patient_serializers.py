@@ -131,18 +131,16 @@ class PatientCreateSerializer(serializers.Serializer):
 class RendezVousSerializer(serializers.ModelSerializer):
     """Serializer pour la lecture des rendez-vous."""
 
-    patient_nom = serializers.CharField(source='id_patient.nom', read_only=True)
-    patient_prenom = serializers.CharField(source='id_patient.prenom', read_only=True)
-    patient_matricule = serializers.CharField(source='id_patient.matricule', read_only=True)
+    id_patient = PatientSerializer(read_only=True)
     medecin_nom = serializers.CharField(source='id_medecin.nom', read_only=True)
     medecin_prenom = serializers.CharField(source='id_medecin.prenom', read_only=True)
     medecin_specialite = serializers.CharField(source='id_medecin.specialite', read_only=True)
+    statut_display = serializers.CharField(source='get_statut_display', read_only=True)
 
     class Meta:
         model = RendezVous
         fields = [
-            'id', 'date_heure', 'id_patient', 'id_medecin',
-            'patient_nom', 'patient_prenom', 'patient_matricule',
+            'id', 'date_heure', 'id_patient', 'id_medecin', 'statut', 'statut_display', 'motif',
             'medecin_nom', 'medecin_prenom', 'medecin_specialite'
         ]
         read_only_fields = ['id']
@@ -213,11 +211,12 @@ class RendezVousCreateSerializer(serializers.Serializer):
         id_medecin = validated_data['matricule_medecin']
         date_heure = validated_data['date_heure']
 
-        # Creer le rendez-vous
+        # Creer le rendez-vous avec statut par defaut
         rendez_vous = RendezVous.objects.create(
             id_patient_id=id_patient,
             id_medecin_id=id_medecin,
-            date_heure=date_heure
+            date_heure=date_heure,
+            statut='en_attente'
         )
 
         return rendez_vous
