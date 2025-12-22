@@ -336,3 +336,75 @@ class MedecinExtendedViewSet(viewsets.ViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @extend_schema(
+        summary="Redirect patient to cashier",
+        description="Updates session status to 'en attente' and redirects patient to Caisse service",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'session_id': {'type': 'integer', 'description': 'ID of the session'}
+                },
+                'required': ['session_id']
+            }
+        },
+        responses={
+            200: OpenApiResponse(description='Patient redirected successfully'),
+            404: OpenApiResponse(description='Session not found'),
+            500: OpenApiResponse(description='Server error')
+        }
+    )
+    @action(detail=False, methods=['post'], url_path='redirect-to-cashier')
+    def redirect_to_cashier(self, request):
+        """
+        Redirect patient to cashier by updating session status.
+        
+        Updates:
+        - statut: 'en attente'
+        - service_courant: 'Caisse'
+        """
+        session_id = request.data.get('session_id')
+        
+        if not session_id:
+            return Response(
+                {'error': 'session_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            session = Session.objects.get(id=session_id)
+            
+            # Update session
+            session.statut = 'en attente'
+            session.service_courant = 'Caisse'
+            session.situation_patient = 'en attente'
+            session.save(update_fields=['statut', 'service_courant', 'situation_patient'])
+            
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Patient redirected to cashier successfully',
+                    'data': {
+                        'session_id': session.id,
+                        'statut': session.statut,
+                        'service_courant': session.service_courant,
+                        'situation_patient': session.situation_patient
+                    }
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Session.DoesNotExist:
+            return Response(
+                {'error': 'Session not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Error redirecting patient to cashier',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

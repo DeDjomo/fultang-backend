@@ -27,7 +27,8 @@ class QuittanceCreateSerializer(serializers.ModelSerializer):
             'numero_quittance',
             'date_paiement',
             'Montant_paye',
-            'Motif'
+            'Motif',
+            'id_session'
         ]
     
     def validate_numero_quittance(self, value):
@@ -59,7 +60,8 @@ class QuittanceUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'date_paiement',
             'Montant_paye',
-            'Motif'
+            'Motif',
+            'id_session'
         ]
     
     def validate_Montant_paye(self, value):
