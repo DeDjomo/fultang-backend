@@ -36,6 +36,11 @@ class RendezVous(models.Model):
         choices=STATUT_CHOICES,
         default='en_attente'
     )
+    motif = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name='Motif de consultation'
+    )
 
     class Meta:
         ordering = ['date_heure']

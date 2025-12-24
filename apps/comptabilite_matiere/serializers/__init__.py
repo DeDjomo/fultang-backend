@@ -27,6 +27,8 @@ from .livraison_sortie import (
     SortieCreateSerializer,
     SortieUpdateSerializer,
 )
+from .rapport import RapportSerializer
+from .ligne_livraison import LigneLivraisonSerializer
 
 __all__ = [
     # Besoin
@@ -52,5 +54,8 @@ __all__ = [
     'SortieSerializer',
     'SortieCreateSerializer',
     'SortieUpdateSerializer',
+    # Rapport et LigneLivraison
+    'RapportSerializer',
+    'LigneLivraisonSerializer',
 ]
 

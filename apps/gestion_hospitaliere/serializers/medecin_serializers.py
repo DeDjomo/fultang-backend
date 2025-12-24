@@ -30,7 +30,7 @@ class PrescriptionMedicamentSerializer(serializers.ModelSerializer):
         model = PrescriptionMedicament
         fields = [
             'id', 'id_medecin', 'medecin_nom', 'medecin_prenom',
-            'liste_medicaments', 'id_session', 'date_heure',
+            'liste_medicaments', 'state', 'id_session', 'date_heure',
             'patient_nom', 'patient_matricule'
         ]
         read_only_fields = ['id', 'date_heure']

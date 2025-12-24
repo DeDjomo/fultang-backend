@@ -7,6 +7,7 @@ Organization: ENSPY (Ecole Nationale Superieure Polytechnique de Yaounde)
 Date: 2025-12-15
 """
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
@@ -256,6 +257,86 @@ class RendezVousViewSet(viewsets.ModelViewSet):
             return Response(
                 {
                     'error': 'Erreur lors de la suppression du rendez-vous',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['get'], url_path='medecin/(?P<medecin_id>[^/.]+)')
+    @extend_schema(
+        summary="Rendez-vous d'un médecin",
+        description="Retourne tous les rendez-vous d'un médecin spécifique",
+        responses={
+            200: RendezVousSerializer(many=True),
+            404: OpenApiResponse(description='Médecin non trouvé')
+        }
+    )
+    def by_medecin(self, request, medecin_id=None):
+        """
+        Récupère tous les rendez-vous d'un médecin.
+        
+        GET /api/rendez-vous/medecin/{medecin_id}/
+        """
+        try:
+            from apps.gestion_hospitaliere.models import Medecin
+            
+            # Vérifier que le médecin existe
+            try:
+                medecin = Medecin.objects.get(id=medecin_id)
+            except Medecin.DoesNotExist:
+                # Fallback: Vérifier si le personnel existe et est un médecin (cas d'incohérence des données)
+                try:
+                    from apps.gestion_hospitaliere.models import Personnel
+                    personnel = Personnel.objects.get(id=medecin_id)
+                    if personnel.poste == 'medecin':
+                        return Response(
+                            {
+                                'success': True,
+                                'count': 0,
+                                'medecin': {
+                                    'id': personnel.id,
+                                    'nom': personnel.nom,
+                                    'prenom': personnel.prenom,
+                                    'specialite': 'Non défini'
+                                },
+                                'data': []
+                            },
+                            status=status.HTTP_200_OK
+                        )
+                except Exception:
+                    pass
+
+                return Response(
+                    {
+                        'error': 'Médecin non trouvé',
+                        'detail': f'Aucun médecin trouvé avec l\'ID {medecin_id}.'
+                    },
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Récupérer tous les rendez-vous du médecin
+            rendez_vous = self.get_queryset().filter(id_medecin=medecin_id).order_by('-date_heure')
+            serializer = self.get_serializer(rendez_vous, many=True)
+            
+            return Response(
+                {
+                    'success': True,
+                    'count': rendez_vous.count(),
+                    'medecin': {
+                        'id': medecin.id,
+                        'nom': medecin.nom,
+                        'prenom': medecin.prenom,
+                        'specialite': medecin.specialite
+                    },
+                    'data': serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+        
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Erreur lors de la récupération des rendez-vous',
                     'detail': str(e)
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

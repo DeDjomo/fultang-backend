@@ -27,7 +27,7 @@ class MaterielCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Materiel
-        fields = ['nom_Materiel', 'prix_achat_unitaire', 'quantite_stock']
+        fields = ['code_materiel', 'nom_Materiel', 'prix_achat_unitaire', 'quantite_stock']
     
     def validate_prix_achat_unitaire(self, value):
         """Valider que le prix est positif."""
@@ -92,6 +92,7 @@ class MaterielMedicalCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaterielMedical
         fields = [
+            'code_materiel',
             'nom_Materiel',
             'prix_achat_unitaire',
             'quantite_stock',
@@ -167,6 +168,7 @@ class MaterielDurableCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaterielDurable
         fields = [
+            'code_materiel',
             'nom_Materiel',
             'prix_achat_unitaire',
             'quantite_stock',

@@ -14,12 +14,23 @@ from .session import Session
 class PrescriptionMedicament(models.Model):
     """Modele pour les prescriptions de medicaments."""
 
+    STATE_CHOICES = [
+        ('en attente', 'En attente'),
+        ('effectuee', 'Effectuée'),
+    ]
+
     id_medecin = models.ForeignKey(
         Medecin,
         on_delete=models.PROTECT,
         related_name='prescriptions_medicaments'
     )
     liste_medicaments = models.TextField()
+    state = models.CharField(
+        max_length=20,
+        choices=STATE_CHOICES,
+        default='en attente',
+        verbose_name='État'
+    )
     id_session = models.ForeignKey(
         Session,
         on_delete=models.CASCADE,

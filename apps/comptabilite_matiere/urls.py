@@ -10,6 +10,8 @@ from apps.comptabilite_matiere.views import (
     MaterielDurableViewSet,
     LivraisonViewSet,
     SortieViewSet,
+    RapportViewSet,
+    LigneLivraisonViewSet,
 )
 
 app_name = 'comptabilite_matiere'
@@ -23,6 +25,8 @@ router.register(r'materiels-medicaux', MaterielMedicalViewSet, basename='materie
 router.register(r'materiels-durables', MaterielDurableViewSet, basename='materiel-durable')
 router.register(r'livraisons', LivraisonViewSet, basename='livraison')
 router.register(r'sorties', SortieViewSet, basename='sortie')
+router.register(r'rapports', RapportViewSet, basename='rapport')
+router.register(r'lignes-livraison', LigneLivraisonViewSet, basename='lignelivraison')
 
 urlpatterns = [
     path('', include(router.urls)),

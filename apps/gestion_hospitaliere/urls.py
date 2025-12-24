@@ -27,6 +27,7 @@ from apps.gestion_hospitaliere.views import (
     login_view,
     logout_view,
 )
+from apps.gestion_hospitaliere.views.caissier_views import CaissierViewSet
 from apps.gestion_hospitaliere.views.health_views import health_check
 
 router = DefaultRouter()
@@ -45,6 +46,7 @@ router.register(r'hospitalisations', HospitalisationViewSet, basename='hospitali
 router.register(r'chambres', ChambreViewSet, basename='chambre')
 router.register(r'sessions', SessionViewSet, basename='session')
 router.register(r'dossiers-patients', DossierPatientViewSet, basename='dossier-patient')
+router.register(r'caissier', CaissierViewSet, basename='caissier')
 
 urlpatterns = [
     path('', include(router.urls)),

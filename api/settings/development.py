@@ -17,3 +17,6 @@ INSTALLED_APPS += [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Force email logging to console in development
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

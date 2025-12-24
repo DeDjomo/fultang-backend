@@ -44,6 +44,16 @@ class Quittance(models.Model):
         help_text="Motif ou description du paiement"
     )
     
+    id_session = models.ForeignKey(
+        'suivi_patient.Session',
+        on_delete=models.CASCADE,
+        related_name='quittances',
+        verbose_name="Session",
+        help_text="Session associée à cette quittance",
+        null=True,
+        blank=True
+    )
+    
     class Meta:
         verbose_name = "Quittance"
         verbose_name_plural = "Quittances"
