@@ -284,6 +284,28 @@ class RendezVousViewSet(viewsets.ModelViewSet):
             try:
                 medecin = Medecin.objects.get(id=medecin_id)
             except Medecin.DoesNotExist:
+                # Fallback: Vérifier si le personnel existe et est un médecin (cas d'incohérence des données)
+                try:
+                    from apps.gestion_hospitaliere.models import Personnel
+                    personnel = Personnel.objects.get(id=medecin_id)
+                    if personnel.poste == 'medecin':
+                        return Response(
+                            {
+                                'success': True,
+                                'count': 0,
+                                'medecin': {
+                                    'id': personnel.id,
+                                    'nom': personnel.nom,
+                                    'prenom': personnel.prenom,
+                                    'specialite': 'Non défini'
+                                },
+                                'data': []
+                            },
+                            status=status.HTTP_200_OK
+                        )
+                except Exception:
+                    pass
+
                 return Response(
                     {
                         'error': 'Médecin non trouvé',

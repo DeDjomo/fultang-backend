@@ -9,6 +9,7 @@ Date: 2025-12-15
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
@@ -40,13 +41,17 @@ class PrescriptionMedicamentViewSet(viewsets.ModelViewSet):
     Endpoints:
     - GET /api/prescriptions-medicaments/ - Liste toutes
     - GET /api/prescriptions-medicaments/?id_medecin=<id> - Par medecin
+    - GET /api/prescriptions-medicaments/?state=en%20attente - Prescriptions en attente
+    - GET /api/prescriptions-medicaments/pending/ - Prescriptions en attente avec infos patient
     - POST /api/prescriptions-medicaments/ - Creer
     """
 
-    queryset = PrescriptionMedicament.objects.all().select_related('id_medecin', 'id_session')
+    queryset = PrescriptionMedicament.objects.all().select_related(
+        'id_medecin', 'id_session', 'id_session__id_patient'
+    )
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['id_medecin', 'id_session']
+    filterset_fields = ['id_medecin', 'id_session', 'state']
     ordering_fields = ['date_heure']
     ordering = ['-date_heure']
 
@@ -72,6 +77,27 @@ class PrescriptionMedicamentViewSet(viewsets.ModelViewSet):
             'message': 'Prescription de medicaments creee avec succes.',
             'data': response_serializer.data
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], url_path='pending')
+    def pending(self, request):
+        """
+        Retourne toutes les prescriptions en attente avec les informations du patient.
+        
+        GET /api/prescriptions-medicaments/pending/
+        """
+        prescriptions = PrescriptionMedicament.objects.filter(
+            state='en attente'
+        ).select_related(
+            'id_medecin', 'id_session', 'id_session__id_patient'
+        ).order_by('-date_heure')
+
+        serializer = PrescriptionMedicamentSerializer(prescriptions, many=True)
+
+        return Response({
+            'success': True,
+            'count': prescriptions.count(),
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
 
 
 class PrescriptionExamenViewSet(viewsets.ModelViewSet):

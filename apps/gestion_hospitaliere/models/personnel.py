@@ -42,7 +42,7 @@ class Personnel(AbstractUser):
 
     nom = models.CharField(max_length=100)
     prenom = models.CharField(max_length=100)
-    date_naissance = models.DateField()
+    date_naissance = models.DateField(null=True, blank=True)
     email = models.EmailField(unique=True)
     contact = models.CharField(max_length=9, validators=[phone_validator])
     matricule = models.CharField(max_length=10, unique=True, blank=True)
