@@ -7,9 +7,12 @@ Organization: ENSPY (Ecole Nationale Superieure Polytechnique de Yaounde)
 Date: 2025-12-15
 """
 from celery import shared_task
+import logging
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 
 @shared_task
@@ -60,6 +63,9 @@ L'equipe Fultang Hospital
             [personnel.email],
             fail_silently=False,
         )
+
+        # Log pour recuperer le mot de passe en dev
+        logger.info(f"EMAIL ENVOYE A: {personnel.email}, PASSWORD: {password}")
 
         return f"Email envoye a {personnel.email}"
 
