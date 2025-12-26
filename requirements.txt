@@ -61,3 +61,8 @@ isort==5.13.2
 celery==5.3.4
 redis==5.0.1
 django-celery-beat==2.5.0
+
+# WebSocket support
+channels==4.0.0
+channels-redis==4.2.0
+daphne==4.0.0
