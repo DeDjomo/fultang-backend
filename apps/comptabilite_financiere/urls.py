@@ -7,6 +7,9 @@ from apps.comptabilite_financiere.views import (
     QuittanceViewSet,
     ChequeViewSet,
     PrestationDeServiceViewSet,
+    CompteComptableViewSet,
+    JournalViewSet,
+    EcritureComptableViewSet,
 )
 
 app_name = 'comptabilite_financiere'
@@ -17,6 +20,9 @@ router = DefaultRouter()
 router.register(r'quittances', QuittanceViewSet, basename='quittance')
 router.register(r'cheques', ChequeViewSet, basename='cheque')
 router.register(r'prestations-de-service', PrestationDeServiceViewSet, basename='prestation-de-service')
+router.register(r'comptes-comptables', CompteComptableViewSet, basename='compte-comptable')
+router.register(r'journaux', JournalViewSet, basename='journal')
+router.register(r'ecritures', EcritureComptableViewSet, basename='ecriture')
 
 urlpatterns = [
     path('', include(router.urls)),

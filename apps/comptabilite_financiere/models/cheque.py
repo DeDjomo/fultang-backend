@@ -17,7 +17,28 @@ class Cheque(models.Model):
     
     numero_cheque = models.AutoField(
         primary_key=True,
-        verbose_name="Numéro du chèque"
+        verbose_name="ID interne"
+    )
+    
+    numero_cheque_externe = models.CharField(
+        max_length=50,
+        default='',
+        verbose_name="Numéro du chèque",
+        help_text="Numéro inscrit sur le chèque"
+    )
+    
+    nom_banque = models.CharField(
+        max_length=100,
+        default='',
+        verbose_name="Nom de la banque",
+        help_text="Nom de la banque émettrice du chèque"
+    )
+    
+    nom_titulaire = models.CharField(
+        max_length=200,
+        default='',
+        verbose_name="Nom du titulaire",
+        help_text="Nom du titulaire du compte"
     )
     
     date_emission = models.DateTimeField(
@@ -47,6 +68,16 @@ class Cheque(models.Model):
         related_name='cheques',
         verbose_name="Patient",
         help_text="Patient associé à ce chèque"
+    )
+    
+    quittance = models.ForeignKey(
+        'comptabilite_financiere.Quittance',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cheques',
+        verbose_name="Quittance",
+        help_text="Quittance associée à ce chèque"
     )
     
     class Meta:

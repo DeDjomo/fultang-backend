@@ -8,6 +8,19 @@ from .prestation_de_service import (
     PrestationDeServiceCreateSerializer,
     PrestationDeServiceUpdateSerializer,
 )
+from .compte_comptable import (
+    CompteComptableSerializer,
+    CompteComptableCreateSerializer,
+    CompteComptableListSerializer,
+)
+from .ecriture_comptable import (
+    JournalSerializer,
+    EcritureComptableSerializer,
+    EcritureComptableCreateSerializer,
+    LigneEcritureSerializer,
+    GrandLivreSerializer,
+    BalanceCompteSerializer,
+)
 
 __all__ = [
     'QuittanceSerializer',
@@ -19,4 +32,13 @@ __all__ = [
     'PrestationDeServiceSerializer',
     'PrestationDeServiceCreateSerializer',
     'PrestationDeServiceUpdateSerializer',
+    'CompteComptableSerializer',
+    'CompteComptableCreateSerializer',
+    'CompteComptableListSerializer',
+    'JournalSerializer',
+    'EcritureComptableSerializer',
+    'EcritureComptableCreateSerializer',
+    'LigneEcritureSerializer',
+    'GrandLivreSerializer',
+    'BalanceCompteSerializer',
 ]
