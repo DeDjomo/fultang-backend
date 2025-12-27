@@ -109,6 +109,28 @@ class SessionViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+            # Verifier qu'il n'existe pas deja une session active pour ce patient
+            id_patient = serializer.validated_data['id_patient']
+            existing_session = Session.objects.filter(
+                id_patient_id=id_patient
+            ).exclude(statut='terminee').first()
+            
+            if existing_session:
+                return Response(
+                    {
+                        'error': 'Session active existante',
+                        'detail': f'Ce patient a deja une session active (ID: {existing_session.id}). '
+                                  f'Veuillez terminer cette session avant d\'en creer une nouvelle.',
+                        'session_existante': {
+                            'id': existing_session.id,
+                            'statut': existing_session.statut,
+                            'service_courant': existing_session.service_courant,
+                            'debut': existing_session.debut.isoformat() if existing_session.debut else None
+                        }
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             # Recuperer le service pour prendre le nom
             id_service = serializer.validated_data['id_service']
             service = Service.objects.get(id=id_service)

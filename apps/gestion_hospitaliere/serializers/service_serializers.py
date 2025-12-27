@@ -104,23 +104,25 @@ class ServiceCreateSerializer(serializers.Serializer):
     """
     Serializer pour la creation d'un service avec son chef.
 
-    Permet de creer un service en fournissant les informations du service
-    et du chef de service en meme temps.
-    PAS DE USERNAME - il sera auto-genere a partir de l'email.
-    PAS D'ID du chef - il sera recherche/cree automatiquement par email.
+    Permet de creer un service en fournissant:
+    - OPTION 1: chef_service_id pour selectionner un personnel existant
+    - OPTION 2: Les informations du chef pour en creer un nouveau
     """
 
     # Champs du service
     nom_service = serializers.CharField(max_length=100)
     desc_service = serializers.CharField(required=False, allow_blank=True)
 
-    # Champs du chef de service (PAS de username ni chef_service_id)
-    chef_nom = serializers.CharField(max_length=100)
-    chef_prenom = serializers.CharField(max_length=100)
-    chef_date_naissance = serializers.DateField()
-    chef_email = serializers.EmailField()
-    chef_contact = serializers.CharField(max_length=9)
-    chef_poste = serializers.ChoiceField(choices=Personnel.POSTE_CHOICES)
+    # Option 1: Selectionner un chef existant par ID
+    chef_service_id = serializers.IntegerField(required=False, allow_null=True)
+
+    # Option 2: Creer un nouveau chef (tous optionnels, requis si pas de chef_service_id)
+    chef_nom = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    chef_prenom = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    chef_date_naissance = serializers.DateField(required=False, allow_null=True)
+    chef_email = serializers.EmailField(required=False, allow_blank=True)
+    chef_contact = serializers.CharField(max_length=9, required=False, allow_blank=True)
+    chef_poste = serializers.ChoiceField(choices=Personnel.POSTE_CHOICES, required=False, allow_blank=True)
     chef_specialite = serializers.CharField(max_length=100, required=False, allow_blank=True)
 
     def validate_nom_service(self, value):
@@ -137,20 +139,30 @@ class ServiceCreateSerializer(serializers.Serializer):
             )
         return value.strip()
 
+    def validate_chef_service_id(self, value):
+        """Valide que le personnel existe si un ID est fourni."""
+        if value:
+            if not Personnel.objects.filter(id=value).exists():
+                raise serializers.ValidationError(
+                    f'Aucun personnel trouve avec l\'ID {value}.'
+                )
+        return value
+
     def validate_chef_email(self, value):
         """Valide que l'email du chef est valide."""
-        if not value or not value.strip():
-            raise serializers.ValidationError(
-                'L\'email du chef de service ne peut pas etre vide.'
-            )
-        return value.strip().lower()
+        if value:
+            return value.strip().lower()
+        return value
 
     def validate_chef_contact(self, value):
         """Valide le format du numero de telephone."""
-        if not value or len(value) != 9:
+        if not value:
+            return value
+
+        if len(value) != 9:
             raise serializers.ValidationError(
                 f'Le numero de telephone doit contenir exactement 9 chiffres. '
-                f'Longueur actuelle: {len(value) if value else 0}.'
+                f'Longueur actuelle: {len(value)}.'
             )
 
         if not value.startswith('6'):
@@ -169,23 +181,42 @@ class ServiceCreateSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Valide les donnees du chef de service."""
+        chef_service_id = data.get('chef_service_id')
+
+        # Si un chef existant est selectionne, pas besoin des autres champs
+        if chef_service_id:
+            return data
+
+        # Sinon, verifier que tous les champs de creation sont fournis
+        required_fields = ['chef_nom', 'chef_prenom', 'chef_date_naissance', 
+                          'chef_email', 'chef_contact', 'chef_poste']
+        missing_fields = []
+
+        for field in required_fields:
+            value = data.get(field)
+            if not value or (isinstance(value, str) and not value.strip()):
+                missing_fields.append(field)
+
+        if missing_fields:
+            raise serializers.ValidationError({
+                'chef_service_id': 'Veuillez selectionner un personnel existant '
+                                  'ou remplir tous les champs du nouveau chef.'
+            })
+
         # Verifier si un medecin necessite une specialite
         if data.get('chef_poste') == 'medecin' and not data.get('chef_specialite'):
             raise serializers.ValidationError({
-                'chef_specialite': 'La specialite est obligatoire pour un medecin. '
-                               'Veuillez specifier la specialite du medecin.'
+                'chef_specialite': 'La specialite est obligatoire pour un medecin.'
             })
 
         return data
 
     def create(self, validated_data):
         """
-        Cree le service et le chef de service.
+        Cree le service avec son chef.
 
-        Si le chef existe deja (par email), on le recupere.
-        Sinon, on le cree avec:
-        - Username auto-genere a partir de l'email
-        - Mot de passe temporaire auto-genere
+        Option 1: Si chef_service_id est fourni, utilise le personnel existant
+        Option 2: Sinon, cree un nouveau personnel avec les donnees fournies
         """
         # Extraire les donnees du service
         service_data = {
@@ -193,50 +224,62 @@ class ServiceCreateSerializer(serializers.Serializer):
             'desc_service': validated_data.get('desc_service', ''),
         }
 
-        # Extraire les donnees du chef
-        chef_email = validated_data['chef_email']
+        chef_service_id = validated_data.get('chef_service_id')
 
-        # Verifier si le chef existe deja par email
-        try:
-            if validated_data.get('chef_poste') == 'medecin':
-                chef = Medecin.objects.get(email=chef_email)
-            else:
-                chef = Personnel.objects.get(email=chef_email)
-        except (Personnel.DoesNotExist, Medecin.DoesNotExist):
-            # Creer le chef s'il n'existe pas
-            # Generer username a partir de l'email
-            username = chef_email.split('@')[0]
-            # S'assurer que le username est unique
-            base_username = username
-            counter = 1
-            while Personnel.objects.filter(username=username).exists():
-                username = f"{base_username}{counter}"
-                counter += 1
+        # Option 1: Utiliser un chef existant
+        if chef_service_id:
+            chef = Personnel.objects.get(id=chef_service_id)
+        else:
+            # Option 2: Creer un nouveau chef
+            chef_email = validated_data['chef_email']
 
-            # Generer un mot de passe temporaire robuste
-            alphabet = string.ascii_letters + string.digits + string.punctuation
-            temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+            # Verifier si le chef existe deja par email
+            try:
+                if validated_data.get('chef_poste') == 'medecin':
+                    chef = Medecin.objects.get(email=chef_email)
+                else:
+                    chef = Personnel.objects.get(email=chef_email)
+            except (Personnel.DoesNotExist, Medecin.DoesNotExist):
+                # Creer le chef s'il n'existe pas
+                # Generer username a partir de l'email
+                username = chef_email.split('@')[0]
+                # S'assurer que le username est unique
+                base_username = username
+                counter = 1
+                while Personnel.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
 
-            chef_data = {
-                'username': username,
-                'nom': validated_data['chef_nom'],
-                'prenom': validated_data['chef_prenom'],
-                'date_naissance': validated_data['chef_date_naissance'],
-                'email': chef_email,
-                'contact': validated_data['chef_contact'],
-                'poste': validated_data['chef_poste'],
-                'password': make_password(temp_password),
-            }
+                # Generer un mot de passe temporaire robuste
+                alphabet = string.ascii_letters + string.digits + string.punctuation
+                temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
 
-            if validated_data.get('chef_poste') == 'medecin':
-                chef_data['specialite'] = validated_data.get('chef_specialite', '')
-                chef = Medecin.objects.create(**chef_data)
-            else:
-                chef = Personnel.objects.create(**chef_data)
+                chef_data = {
+                    'username': username,
+                    'nom': validated_data['chef_nom'],
+                    'prenom': validated_data['chef_prenom'],
+                    'date_naissance': validated_data['chef_date_naissance'],
+                    'email': chef_email,
+                    'contact': validated_data['chef_contact'],
+                    'poste': validated_data['chef_poste'],
+                    'password': make_password(temp_password),
+                    'is_active': True,  # Important pour AbstractUser
+                    'statut': 'actif',  # Statut du personnel
+                }
+
+                if validated_data.get('chef_poste') == 'medecin':
+                    chef_data['specialite'] = validated_data.get('chef_specialite', '')
+                    chef = Medecin.objects.create(**chef_data)
+                else:
+                    chef = Personnel.objects.create(**chef_data)
 
         # Creer le service avec le chef
         service_data['chef_service'] = chef
         service = Service.objects.create(**service_data)
+
+        # Associer le service au chef (relation bidirectionnelle)
+        chef.service = service
+        chef.save(update_fields=['service'])
 
         return service
 
@@ -323,6 +366,16 @@ class PersonnelCreateSerializer(serializers.Serializer):
 
         # Generer mot de passe robuste
         temp_password = generate_robust_password()
+
+        # Si aucun service n'est fourni, utiliser le service par defaut
+        if not validated_data.get('service'):
+            default_service, _ = Service.objects.get_or_create(
+                nom_service='Fultang_Hopital',
+                defaults={
+                    'desc_service': 'Service par defaut de l\'hopital Fultang'
+                }
+            )
+            validated_data['service'] = default_service
 
         # Preparer les donnees
         validated_data['username'] = username

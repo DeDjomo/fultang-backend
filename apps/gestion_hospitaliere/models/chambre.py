@@ -16,6 +16,14 @@ class Chambre(models.Model):
     nombre_places_total = models.IntegerField()
     nombre_places_dispo = models.IntegerField()
     tarif_journalier = models.DecimalField(max_digits=10, decimal_places=2)
+    service = models.ForeignKey(
+        'Service',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='chambres',
+        verbose_name='Service'
+    )
 
     class Meta:
         ordering = ['numero_chambre']
@@ -23,4 +31,5 @@ class Chambre(models.Model):
         verbose_name_plural = 'Chambres'
 
     def __str__(self):
-        return f"Chambre {self.numero_chambre} ({self.nombre_places_dispo}/{self.nombre_places_total} places)"
+        service_nom = self.service.nom_service if self.service else "Aucun service"
+        return f"Chambre {self.numero_chambre} - {service_nom} ({self.nombre_places_dispo}/{self.nombre_places_total} places)"
