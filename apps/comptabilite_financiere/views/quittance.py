@@ -53,6 +53,11 @@ class QuittanceViewSet(viewsets.ModelViewSet):
         elif self.action in ['update', 'partial_update']:
             return QuittanceUpdateSerializer
         return QuittanceSerializer
+
+    def perform_create(self, serializer):
+        """Assigner le caissier actuel lors de la création."""
+        serializer.save(caissier=self.request.user)
+
     
     @action(detail=False, methods=['get'])
     def du_jour(self, request):

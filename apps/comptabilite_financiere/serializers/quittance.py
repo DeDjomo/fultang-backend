@@ -162,6 +162,7 @@ class QuittanceCreateSerializer(serializers.ModelSerializer):
             'carte_reference',
             'carte_terminal',
         ]
+        read_only_fields = ['numero_quittance']
         
     cheque_numero = serializers.CharField(write_only=True, required=False, allow_blank=True)
     cheque_banque = serializers.CharField(write_only=True, required=False, allow_blank=True)
@@ -179,14 +180,7 @@ class QuittanceCreateSerializer(serializers.ModelSerializer):
     carte_numero = serializers.CharField(write_only=True, required=False, allow_blank=True)
     carte_reference = serializers.CharField(write_only=True, required=False, allow_blank=True)
     carte_terminal = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    
-    def validate_numero_quittance(self, value):
-        """Valider que le numéro de quittance n'existe pas déjà."""
-        if Quittance.objects.filter(numero_quittance=value).exists():
-            raise serializers.ValidationError(
-                f"Une quittance avec le numéro {value} existe déjà."
-            )
-        return value
+
     
     def validate_Montant_paye(self, value):
         """Valider que le montant est positif."""
@@ -336,6 +330,10 @@ class QuittanceCreateSerializer(serializers.ModelSerializer):
                     )
             
             return quittance
+
+    def to_representation(self, instance):
+        """Utiliser le sérialiseur complet pour la réponse."""
+        return QuittanceSerializer(instance).data
 
 
 class QuittanceUpdateSerializer(serializers.ModelSerializer):

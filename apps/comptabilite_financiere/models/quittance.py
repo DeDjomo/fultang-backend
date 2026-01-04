@@ -153,3 +153,37 @@ class Quittance(models.Model):
     
     def __str__(self):
         return f"Quittance {self.numero_quittance} - {self.Montant_paye} FCFA"
+
+    def save(self, *args, **kwargs):
+        """Surcharger save pour générer automatiquement le numéro de quittance si vide."""
+        if not self.numero_quittance:
+            from django.utils import timezone
+            today = timezone.now()
+            year = today.year
+            
+            # Pattern: QT-{Year}-{Sequence} (e.g., QT-2026-00001)
+            # Find the last quittance created this year to increment sequence
+            prefix = f"QT-{year}-"
+            last_quittance = Quittance.objects.filter(
+                numero_quittance__startswith=prefix
+            ).order_by('numero_quittance').last()
+            
+            if last_quittance:
+                try:
+                    # Extract the sequence part
+                    last_sequence_str = last_quittance.numero_quittance.replace(prefix, "")
+                    # Ensure it's a number (handle potential legacy formats or errors)
+                    if last_sequence_str.isdigit():
+                        sequence = int(last_sequence_str) + 1
+                    else:
+                        # Fallback if legacy format doesn't match: count existing for year + 1
+                        sequence = Quittance.objects.filter(date_paiement__year=year).count() + 1
+                except ValueError:
+                    sequence = Quittance.objects.filter(date_paiement__year=year).count() + 1
+            else:
+                # First one of the year
+                sequence = 1
+            
+            self.numero_quittance = f"{prefix}{sequence:05d}"
+            
+        super(Quittance, self).save(*args, **kwargs)
