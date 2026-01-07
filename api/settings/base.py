@@ -21,6 +21,7 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-change-me-please')
 
 # Application definition
 INSTALLED_APPS = [
+    'daphne',  # WebSocket/ASGI server - must be first
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -35,6 +36,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'django_celery_beat',
+    'channels',  # WebSocket support
+
+    # API configuration (for WebSocket signals)
+    'api.apps.ApiConfig',
 
     # Local apps
     'apps.gestion_hospitaliere',
@@ -73,6 +78,19 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'api.wsgi.application'
+ASGI_APPLICATION = 'api.asgi.application'
+
+# ==================================================
+# CHANNEL LAYERS (WebSocket) CONFIGURATION
+# ==================================================
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [(os.getenv('REDIS_HOST', 'redis'), int(os.getenv('REDIS_PORT', 6379)))],
+        },
+    },
+}
 
 
 # Database
@@ -150,7 +168,7 @@ REST_FRAMEWORK = {
         'rest_framework.filters.OrderingFilter',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    'PAGE_SIZE': 100,
     'PAGE_SIZE_QUERY_PARAM': 'page_size',
     'MAX_PAGE_SIZE': 10000,  # Augmenté pour permettre de récupérer tous les enregistrements
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',

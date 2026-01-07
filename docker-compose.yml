@@ -121,6 +121,10 @@ services:
       # Variables système
       TZ: ${TZ:-Europe/Paris}
       PYTHONUNBUFFERED: 1
+      
+      # Redis pour WebSocket
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       db:
         condition: service_healthy
