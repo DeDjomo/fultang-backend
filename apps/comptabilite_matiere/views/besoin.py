@@ -8,7 +8,7 @@ Date: 2025-12-18
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from apps.comptabilite_matiere.permissions import DevelopmentOrAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -37,7 +37,7 @@ class BesoinViewSet(viewsets.ModelViewSet):
     """
     
     queryset = Besoin.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [DevelopmentOrAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     
     # Filtres

@@ -18,6 +18,7 @@ class RapportViewSet(viewsets.ModelViewSet):
     """
     queryset = Rapport.objects.all()
     serializer_class = RapportSerializer
+    pagination_class = None  # Désactiver la pagination pour récupérer tous les rapports
     
     def get_serializer_class(self):
         if self.action == 'create':

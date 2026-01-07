@@ -26,6 +26,20 @@ class LigneLivraison(models.Model):
         on_delete=models.PROTECT,
         verbose_name="Matériel",
     )
+    code_materiel = models.CharField(
+        max_length=50,
+        verbose_name="Code du matériel",
+        help_text="Code d'identification du matériel",
+        blank=True,
+        default=""
+    )
+    nom_materiel = models.CharField(
+        max_length=150,
+        verbose_name="Nom du matériel",
+        help_text="Nom du matériel livré",
+        blank=True,
+        default=""
+    )
     quantite_conforme = models.PositiveIntegerField(default=0)
     quantite_non_conforme = models.PositiveIntegerField(default=0)
     prix_unitaire_achat = models.DecimalField(max_digits=10, decimal_places=2)

@@ -92,6 +92,7 @@ class MaterielMedicalCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaterielMedical
         fields = [
+            'materiel_ptr_id',  # ID retourné après création
             'code_materiel',
             'nom_Materiel',
             'prix_achat_unitaire',
@@ -100,6 +101,7 @@ class MaterielMedicalCreateSerializer(serializers.ModelSerializer):
             'unite_mesure',
             'prix_vente_unitaire'
         ]
+        read_only_fields = ['materiel_ptr_id']
     
     def validate_prix_achat_unitaire(self, value):
         if value <= 0:
@@ -163,6 +165,7 @@ class MaterielDurableCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaterielDurable
         fields = [
+            'materiel_ptr_id',  # ID retourné après création
             'code_materiel',
             'nom_Materiel',
             'prix_achat_unitaire',
@@ -170,6 +173,7 @@ class MaterielDurableCreateSerializer(serializers.ModelSerializer):
             'Etat',
             'localisation'
         ]
+        read_only_fields = ['materiel_ptr_id']
     
     def validate_prix_achat_unitaire(self, value):
         if value <= 0:
