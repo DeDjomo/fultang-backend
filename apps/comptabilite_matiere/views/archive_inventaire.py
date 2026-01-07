@@ -24,6 +24,7 @@ class ArchiveInventaireViewSet(viewsets.ModelViewSet):
     """
     queryset = ArchiveInventaire.objects.all()
     serializer_class = ArchiveInventaireSerializer
+    pagination_class = None  # Désactiver la pagination
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -114,6 +115,7 @@ class LigneArchiveInventaireViewSet(viewsets.ModelViewSet):
     """
     queryset = LigneArchiveInventaire.objects.all()
     serializer_class = LigneArchiveInventaireSerializer
+    pagination_class = None  # Désactiver la pagination
     
     def get_queryset(self):
         """Filtre les lignes par archive si spécifié."""

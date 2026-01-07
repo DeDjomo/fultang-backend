@@ -9,14 +9,39 @@ Date: 2025-12-14
 from .base import *
 
 DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '*']
+ALLOWED_HOSTS = ['*']  # Accepter toutes les origines
 
 # Applications de developpement (rest_framework et corsheaders sont deja dans base.py)
 INSTALLED_APPS += [
     'django_extensions',
 ]
 
+# CORS Configuration - Complètement ouvert pour les tests
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = ['*']
+CORS_ALLOW_METHODS = ['*']
 
 # Force email logging to console in development
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# En développement, autoriser l'accès sans authentification pour faciliter les tests
+REST_FRAMEWORK = {
+    **REST_FRAMEWORK,
+    'DEFAULT_AUTHENTICATION_CLASSES': [],  # Pas d'authentification requise
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',  # Accès libre à tous les endpoints
+    ],
+}
+
+# Désactiver le CSRF pour les tests
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+    'http://localhost:9000',
+    'http://localhost:5173',
+]
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False

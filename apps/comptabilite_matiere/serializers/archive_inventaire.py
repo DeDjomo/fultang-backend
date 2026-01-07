@@ -69,10 +69,12 @@ class ArchiveInventaireCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ArchiveInventaire
         fields = [
+            'id_archive',
             'code_archive',
             'responsable',
             'observations',
         ]
+        read_only_fields = ['id_archive']
 
 
 class LigneArchiveInventaireUpdateSerializer(serializers.ModelSerializer):

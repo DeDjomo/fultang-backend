@@ -52,10 +52,11 @@ class Besoin(models.Model):
     statut = models.CharField(
         max_length=20,
         choices=StatutChoices.choices,
-        default=StatutChoices.EN_COURS,
+        default=StatutChoices.NON_TRAITE,
         verbose_name="Statut",
         help_text="État actuel du besoin"
     )
+
     
     date_traitement_directeur = models.DateTimeField(
         null=True,
