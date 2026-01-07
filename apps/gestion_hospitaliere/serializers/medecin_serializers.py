@@ -44,8 +44,9 @@ class PrescriptionMedicamentCreateSerializer(serializers.Serializer):
     id_session = serializers.IntegerField()
 
     def validate_id_medecin(self, value):
-        """Verifie que le medecin existe."""
-        if not Medecin.objects.filter(id=value).exists():
+        """Verifie que le medecin existe (dans Personnel avec poste='medecin')."""
+        from apps.gestion_hospitaliere.models import Personnel
+        if not Personnel.objects.filter(id=value, poste='medecin').exists():
             raise serializers.ValidationError(
                 f'Aucun medecin trouve avec l\'ID {value}.'
             )
@@ -98,8 +99,9 @@ class PrescriptionExamenCreateSerializer(serializers.Serializer):
     id_session = serializers.IntegerField()
 
     def validate_id_medecin(self, value):
-        """Verifie que le medecin existe."""
-        if not Medecin.objects.filter(id=value).exists():
+        """Verifie que le medecin existe (dans Personnel avec poste='medecin')."""
+        from apps.gestion_hospitaliere.models import Personnel
+        if not Personnel.objects.filter(id=value, poste='medecin').exists():
             raise serializers.ValidationError(
                 f'Aucun medecin trouve avec l\'ID {value}.'
             )
@@ -260,11 +262,13 @@ class HospitalisationCreateSerializer(serializers.Serializer):
 class ChambreSerializer(serializers.ModelSerializer):
     """Serializer pour la lecture des chambres."""
 
+    service_nom = serializers.CharField(source='service.nom_service', read_only=True, default=None)
+
     class Meta:
         model = Chambre
         fields = [
             'id', 'numero_chambre', 'nombre_places_total',
-            'nombre_places_dispo', 'tarif_journalier'
+            'nombre_places_dispo', 'tarif_journalier', 'service', 'service_nom'
         ]
         read_only_fields = ['id']
 
@@ -275,6 +279,7 @@ class ChambreCreateSerializer(serializers.Serializer):
     numero_chambre = serializers.CharField(max_length=50)
     nombre_places_total = serializers.IntegerField(min_value=1)
     tarif_journalier = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0.01)
+    service_id = serializers.IntegerField(required=False, allow_null=True, default=None)
 
     def validate_numero_chambre(self, value):
         """Verifie que le numero de chambre est unique."""
@@ -284,9 +289,24 @@ class ChambreCreateSerializer(serializers.Serializer):
             )
         return value
 
+    def validate_service_id(self, value):
+        """Verifie que le service existe si fourni."""
+        if value is not None:
+            from apps.gestion_hospitaliere.models import Service
+            if not Service.objects.filter(id=value).exists():
+                raise serializers.ValidationError(
+                    f'Aucun service trouve avec l\'ID {value}.'
+                )
+        return value
+
     def create(self, validated_data):
         """Cree une nouvelle chambre."""
         # nombre_places_dispo = nombre_places_total par defaut
         validated_data['nombre_places_dispo'] = validated_data['nombre_places_total']
+        # Renommer service_id en service_id pour l'ORM
+        service_id = validated_data.pop('service_id', None)
+        if service_id:
+            validated_data['service_id'] = service_id
         chambre = Chambre.objects.create(**validated_data)
         return chambre
+
