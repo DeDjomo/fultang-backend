@@ -8,6 +8,10 @@ from .besoin import (
     CommentaireDirecteurSerializer,
     ModifierStatutSerializer,
 )
+from .ligne_besoin import (
+    LigneBesoinSerializer,
+    LigneBesoinCreateSerializer,
+)
 from .materiel import (
     MaterielSerializer,
     MaterielCreateSerializer,
@@ -27,6 +31,26 @@ from .livraison_sortie import (
     SortieCreateSerializer,
     SortieUpdateSerializer,
 )
+from .ligne_sortie import (
+    LigneSortieSerializer,
+    LigneSortieCreateSerializer,
+)
+from .archive_inventaire import (
+    ArchiveInventaireSerializer,
+    ArchiveInventaireCreateSerializer,
+    LigneArchiveInventaireSerializer,
+    LigneArchiveInventaireUpdateSerializer,
+)
+from .rapport import (
+    RapportSerializer,
+    RapportCreateSerializer,
+    RapportMarkReadSerializer,
+)
+from .piece_jointe_rapport import (
+    PieceJointeRapportSerializer,
+    PieceJointeRapportCreateSerializer,
+)
+from .ligne_livraison import LigneLivraisonSerializer
 
 __all__ = [
     # Besoin
@@ -35,6 +59,9 @@ __all__ = [
     'BesoinUpdateSerializer',
     'CommentaireDirecteurSerializer',
     'ModifierStatutSerializer',
+    # LigneBesoin
+    'LigneBesoinSerializer',
+    'LigneBesoinCreateSerializer',
     # Materiel
     'MaterielSerializer',
     'MaterielCreateSerializer',
@@ -52,5 +79,21 @@ __all__ = [
     'SortieSerializer',
     'SortieCreateSerializer',
     'SortieUpdateSerializer',
+    # LigneSortie
+    'LigneSortieSerializer',
+    'LigneSortieCreateSerializer',
+    # ArchiveInventaire
+    'ArchiveInventaireSerializer',
+    'ArchiveInventaireCreateSerializer',
+    'LigneArchiveInventaireSerializer',
+    'LigneArchiveInventaireUpdateSerializer',
+    # Rapport
+    'RapportSerializer',
+    'RapportCreateSerializer',
+    'RapportMarkReadSerializer',
+    # PieceJointeRapport
+    'PieceJointeRapportSerializer',
+    'PieceJointeRapportCreateSerializer',
+    # LigneLivraison
+    'LigneLivraisonSerializer',
 ]
-

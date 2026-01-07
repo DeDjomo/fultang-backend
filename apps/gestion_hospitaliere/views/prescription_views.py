@@ -9,6 +9,7 @@ Date: 2025-12-15
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
@@ -40,13 +41,17 @@ class PrescriptionMedicamentViewSet(viewsets.ModelViewSet):
     Endpoints:
     - GET /api/prescriptions-medicaments/ - Liste toutes
     - GET /api/prescriptions-medicaments/?id_medecin=<id> - Par medecin
+    - GET /api/prescriptions-medicaments/?state=en%20attente - Prescriptions en attente
+    - GET /api/prescriptions-medicaments/pending/ - Prescriptions en attente avec infos patient
     - POST /api/prescriptions-medicaments/ - Creer
     """
 
-    queryset = PrescriptionMedicament.objects.all().select_related('id_medecin', 'id_session')
+    queryset = PrescriptionMedicament.objects.all().select_related(
+        'id_medecin', 'id_session', 'id_session__id_patient'
+    )
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ['id_medecin', 'id_session']
+    filterset_fields = ['id_medecin', 'id_session', 'state']
     ordering_fields = ['date_heure']
     ordering = ['-date_heure']
 
@@ -72,6 +77,27 @@ class PrescriptionMedicamentViewSet(viewsets.ModelViewSet):
             'message': 'Prescription de medicaments creee avec succes.',
             'data': response_serializer.data
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], url_path='pending')
+    def pending(self, request):
+        """
+        Retourne toutes les prescriptions en attente avec les informations du patient.
+        
+        GET /api/prescriptions-medicaments/pending/
+        """
+        prescriptions = PrescriptionMedicament.objects.filter(
+            state='en attente'
+        ).select_related(
+            'id_medecin', 'id_session', 'id_session__id_patient'
+        ).order_by('-date_heure')
+
+        serializer = PrescriptionMedicamentSerializer(prescriptions, many=True)
+
+        return Response({
+            'success': True,
+            'count': prescriptions.count(),
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
 
 
 class PrescriptionExamenViewSet(viewsets.ModelViewSet):
@@ -173,6 +199,30 @@ class HospitalisationViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            # Verifier qu'il n'existe pas deja une hospitalisation active pour ce patient
+            id_session = serializer.validated_data.get('id_session')
+            if id_session:
+                # Recuperer le patient depuis la session (id_session est un entier)
+                from apps.suivi_patient.models import Session
+                session = Session.objects.get(id=id_session)
+                patient_id = session.id_patient_id
+                existing_hospitalisation = Hospitalisation.objects.filter(
+                    id_session__id_patient_id=patient_id,
+                    statut='en_cours'
+                ).first()
+                
+                if existing_hospitalisation:
+                    return Response({
+                        'error': 'Hospitalisation active existante',
+                        'detail': f'Ce patient a deja une hospitalisation en cours (ID: {existing_hospitalisation.id}). '
+                                  f'Veuillez terminer cette hospitalisation avant d\'en creer une nouvelle.',
+                        'hospitalisation_existante': {
+                            'id': existing_hospitalisation.id,
+                            'chambre': str(existing_hospitalisation.id_chambre) if existing_hospitalisation.id_chambre else None,
+                            'debut': existing_hospitalisation.debut.isoformat() if existing_hospitalisation.debut else None
+                        }
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
             hospitalisation = serializer.save()
             response_serializer = HospitalisationSerializer(hospitalisation)
 
@@ -195,14 +245,16 @@ class ChambreViewSet(viewsets.ModelViewSet):
     ViewSet pour les chambres.
 
     Filtres disponibles:
+    - service: ID du service pour filtrer les chambres
     - places_disponibles: Chambres avec au moins 1 place dispo
     - tarif_min: Chambres avec tarif >= valeur
     - tarif_max: Chambres avec tarif <= valeur
     """
 
-    queryset = Chambre.objects.all()
+    queryset = Chambre.objects.select_related('service').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['service']
     ordering_fields = ['tarif_journalier', 'nombre_places_dispo']
     ordering = ['numero_chambre']
 
@@ -214,6 +266,14 @@ class ChambreViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Applique les filtres personnalises."""
         queryset = super().get_queryset()
+
+        # Filtre: par service (pour l'hospitalisation)
+        service_id = self.request.query_params.get('service', None)
+        if service_id is not None:
+            try:
+                queryset = queryset.filter(service_id=int(service_id))
+            except ValueError:
+                pass
 
         # Filtre: chambres avec places disponibles
         places_dispo = self.request.query_params.get('places_disponibles', None)

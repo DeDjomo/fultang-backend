@@ -131,9 +131,7 @@ class PatientCreateSerializer(serializers.Serializer):
 class RendezVousSerializer(serializers.ModelSerializer):
     """Serializer pour la lecture des rendez-vous."""
 
-    patient_nom = serializers.CharField(source='id_patient.nom', read_only=True)
-    patient_prenom = serializers.CharField(source='id_patient.prenom', read_only=True)
-    patient_matricule = serializers.CharField(source='id_patient.matricule', read_only=True)
+    id_patient = PatientSerializer(read_only=True)
     medecin_nom = serializers.CharField(source='id_medecin.nom', read_only=True)
     medecin_prenom = serializers.CharField(source='id_medecin.prenom', read_only=True)
     medecin_specialite = serializers.CharField(source='id_medecin.specialite', read_only=True)
@@ -142,8 +140,7 @@ class RendezVousSerializer(serializers.ModelSerializer):
     class Meta:
         model = RendezVous
         fields = [
-            'id', 'date_heure', 'id_patient', 'id_medecin', 'statut', 'statut_display',
-            'patient_nom', 'patient_prenom', 'patient_matricule',
+            'id', 'date_heure', 'id_patient', 'id_medecin', 'statut', 'statut_display', 'motif',
             'medecin_nom', 'medecin_prenom', 'medecin_specialite'
         ]
         read_only_fields = ['id']

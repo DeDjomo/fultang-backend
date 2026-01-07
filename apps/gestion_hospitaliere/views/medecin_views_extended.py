@@ -83,14 +83,22 @@ class MedecinExtendedViewSet(viewsets.ViewSet):
                 statut='terminee'
             )
 
-            # Construire la reponse avec id_session pour chaque patient
+            # Construire la reponse avec donnees patients aplaties + id_session
             result = []
             for session in sessions:
-                patient_data = PatientSerializer(session.id_patient).data
-                result.append({
+                patient = session.id_patient
+                patient_data = {
+                    'id': patient.id,
+                    'nom': patient.nom,
+                    'prenom': patient.prenom,
+                    'matricule': patient.matricule,
+                    'contact': patient.contact,
+                    'date_naissance': patient.date_naissance,
+                    'age': patient.get_age() if hasattr(patient, 'get_age') else None,
                     'id_session': session.id,
-                    'patient': patient_data
-                })
+                    'debut_session': session.debut,
+                }
+                result.append(patient_data)
 
             return Response(
                 {
@@ -241,8 +249,8 @@ class MedecinExtendedViewSet(viewsets.ViewSet):
             404: OpenApiResponse(description='Patient non trouve')
         }
     )
-    @action(detail=True, methods=['get'], url_path='dossier-patient')
-    def consulter_dossier_patient(self, request, pk=None):
+    @action(detail=False, methods=['get'], url_path='consulter-dossier/(?P<patient_id>[^/.]+)')
+    def consulter_dossier_patient(self, request, patient_id=None):
         """
         Consulte le dossier complet d'un patient.
 
@@ -251,7 +259,6 @@ class MedecinExtendedViewSet(viewsets.ViewSet):
         - Retourne toutes les informations du patient + historique
         """
         try:
-            patient_id = pk
 
             try:
                 patient = Patient.objects.get(id=patient_id)
@@ -325,6 +332,78 @@ class MedecinExtendedViewSet(viewsets.ViewSet):
             return Response(
                 {
                     'error': 'Erreur lors de la consultation du dossier',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Redirect patient to cashier",
+        description="Updates session status to 'en attente' and redirects patient to Caisse service",
+        request={
+            'application/json': {
+                'type': 'object',
+                'properties': {
+                    'session_id': {'type': 'integer', 'description': 'ID of the session'}
+                },
+                'required': ['session_id']
+            }
+        },
+        responses={
+            200: OpenApiResponse(description='Patient redirected successfully'),
+            404: OpenApiResponse(description='Session not found'),
+            500: OpenApiResponse(description='Server error')
+        }
+    )
+    @action(detail=False, methods=['post'], url_path='redirect-to-cashier')
+    def redirect_to_cashier(self, request):
+        """
+        Redirect patient to cashier by updating session status.
+        
+        Updates:
+        - statut: 'en attente'
+        - service_courant: 'Caisse'
+        """
+        session_id = request.data.get('session_id')
+        
+        if not session_id:
+            return Response(
+                {'error': 'session_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            session = Session.objects.get(id=session_id)
+            
+            # Update session
+            session.statut = 'en attente'
+            session.service_courant = 'Caisse'
+            session.situation_patient = 'en attente'
+            session.save(update_fields=['statut', 'service_courant', 'situation_patient'])
+            
+            return Response(
+                {
+                    'success': True,
+                    'message': 'Patient redirected to cashier successfully',
+                    'data': {
+                        'session_id': session.id,
+                        'statut': session.statut,
+                        'service_courant': session.service_courant,
+                        'situation_patient': session.situation_patient
+                    }
+                },
+                status=status.HTTP_200_OK
+            )
+            
+        except Session.DoesNotExist:
+            return Response(
+                {'error': 'Session not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Error redirecting patient to cashier',
                     'detail': str(e)
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
