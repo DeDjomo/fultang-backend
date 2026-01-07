@@ -27,6 +27,8 @@ class MaterielMedical(Materiel):
         FLACON = 'FLACON', 'Flacon'
         UNITE = 'UNITE', 'Unité'
         PLAQUETTE = 'PLAQUETTE', 'Plaquette'
+        SACHET = 'SACHET', 'Sachet'
+        TUBE = 'TUBE', 'Tube'
     
     categorie = models.CharField(
         max_length=20,
@@ -36,10 +38,9 @@ class MaterielMedical(Materiel):
     )
     
     unite_mesure = models.CharField(
-        max_length=20,
-        choices=UniteMesureChoices.choices,
+        max_length=50,
         verbose_name="Unité de mesure",
-        help_text="Unité dans laquelle le matériel est compté"
+        help_text="Unité dans laquelle le matériel est compté (ex: BOITE, FLACON, SACHET...)"
     )
     
     prix_vente_unitaire = models.DecimalField(

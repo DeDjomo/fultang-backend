@@ -114,7 +114,11 @@ class SortieCreateSerializer(serializers.ModelSerializer):
             'numero_sortie',
             'date_sortie',
             'motif_sortie',
-            'idPersonnel'
+            'idPersonnel',
+            'service_responsable',
+            'montant_total',
+            'heure_sortie',
+            'observations'
         ]
     
     def validate_numero_sortie(self, value):
@@ -134,5 +138,9 @@ class SortieUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'date_sortie',
             'motif_sortie',
-            'idPersonnel'
+            'idPersonnel',
+            'service_responsable',
+            'montant_total',
+            'heure_sortie',
+            'observations'
         ]

@@ -118,12 +118,7 @@ class MaterielMedicalCreateSerializer(serializers.ModelSerializer):
     
     def validate(self, data):
         """Validation globale."""
-        # Vérifier que le prix de vente est supérieur au prix d'achat (recommandé)
-        if data.get('prix_vente_unitaire') and data.get('prix_achat_unitaire'):
-            if data['prix_vente_unitaire'] < data['prix_achat_unitaire']:
-                raise serializers.ValidationError({
-                    'prix_vente_unitaire': 'Le prix de vente devrait être supérieur au prix d\'achat.'
-                })
+        # On autorise la vente à perte si nécessaire
         return data
 
 
