@@ -295,4 +295,8 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'apps.gestion_hospitaliere.tasks.check_expired_passwords',
         'schedule': crontab(hour=0, minute=0),  # Quotidien a minuit
     },
+    'auto-terminate-inactive-sessions': {
+        'task': 'apps.gestion_hospitaliere.tasks.auto_terminate_inactive_sessions',
+        'schedule': crontab(hour=0, minute=30),  # Quotidien a 00:30
+    },
 }

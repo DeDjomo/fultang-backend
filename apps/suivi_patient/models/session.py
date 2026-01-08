@@ -8,6 +8,7 @@ Date: 2025-12-14
 """
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from .patient import Patient
 
 
@@ -25,6 +26,13 @@ class Session(models.Model):
         ('recu', 'Recu'),
     ]
 
+    POSTE_RESPONSABLE_CHOICES = [
+        ('infirmier', 'Infirmier'),
+        ('medecin', 'Medecin'),
+        ('laborantin', 'Laborantin'),
+        ('receptioniste', 'Receptioniste'),
+    ]
+
     debut = models.DateTimeField(auto_now_add=True)
     fin = models.DateTimeField(null=True, blank=True)
     id_patient = models.ForeignKey(
@@ -38,7 +46,11 @@ class Session(models.Model):
         related_name='sessions_ouvertes'
     )
     service_courant = models.CharField(max_length=100)
-    personnel_responsable = models.CharField(max_length=20)
+    personnel_responsable = models.CharField(
+        max_length=20,
+        choices=POSTE_RESPONSABLE_CHOICES,
+        default='infirmier'
+    )
     statut = models.CharField(
         max_length=20,
         choices=STATUT_CHOICES,
@@ -49,11 +61,20 @@ class Session(models.Model):
         choices=SITUATION_CHOICES,
         default='en attente'
     )
+    # Champ pour tracker la dernière action sur la session
+    # Utilisé pour auto-terminer après 2 jours d'inactivité
+    derniere_action = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-debut']
         verbose_name = 'Session'
         verbose_name_plural = 'Sessions'
 
+    def save(self, *args, **kwargs):
+        """Met à jour derniere_action à chaque modification."""
+        # auto_now=True gère automatiquement la mise à jour
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"Session {self.id} - {self.id_patient.matricule} ({self.statut})"
+
