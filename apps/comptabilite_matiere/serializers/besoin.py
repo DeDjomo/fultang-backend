@@ -15,7 +15,7 @@ class BesoinCreateSerializer(serializers.ModelSerializer):
     Sérialiseur pour la création d'un besoin.
     
     Accepte uniquement le motif et l'idPersonnel_emetteur.
-    Le statut est automatiquement mis à EN_COURS et la date de création
+    Le statut est automatiquement mis à NON_TRAITE et la date de création
     est automatiquement définie.
     """
     
@@ -33,11 +33,12 @@ class BesoinCreateSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         """
-        Créer un besoin avec le statut EN_COURS par défaut.
+        Créer un besoin avec le statut NON_TRAITE par défaut.
         """
-        # Le statut EN_COURS est déjà défini par défaut dans le modèle
+        # Le statut NON_TRAITE est déjà défini par défaut dans le modèle
         # La date de création est aussi automatique
         return Besoin.objects.create(**validated_data)
+
 
 
 

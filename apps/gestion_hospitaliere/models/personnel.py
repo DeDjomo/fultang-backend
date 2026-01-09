@@ -26,8 +26,10 @@ class Personnel(AbstractUser):
         ('laborantin', 'Laborantin'),
         ('pharmacien', 'Pharmacien'),
         ('comptable', 'Comptable'),
+        ('comptable_matiere', 'Comptable Matiere'),
         ('directeur', 'Directeur'),
     ]
+
 
     STATUT_CHOICES = [
         ('actif', 'Actif'),

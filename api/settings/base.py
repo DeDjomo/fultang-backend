@@ -152,12 +152,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ==================================================
 # REST FRAMEWORK CONFIGURATION
 # ==================================================
+# ATTENTION: Sécurité désactivée temporairement pour les tests du frontend
+# Pour réactiver la sécurité, décommenter les lignes ci-dessous et supprimer AllowAny
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'apps.gestion_hospitaliere.authentication.CustomJWTAuthentication',
+        # 'apps.gestion_hospitaliere.authentication.CustomJWTAuthentication',  # DÉSACTIVÉ POUR TESTS
     ),
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',  # TEMPORAIRE - remettre IsAuthenticated après les tests
+        # 'rest_framework.permissions.IsAuthenticated',  # ORIGINAL
     ],
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
@@ -167,7 +170,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
     'PAGE_SIZE_QUERY_PARAM': 'page_size',
-    'MAX_PAGE_SIZE': 10000,
+    'MAX_PAGE_SIZE': 10000,  # Augmenté pour permettre de récupérer tous les enregistrements
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
     'DEFAULT_RENDERER_CLASSES': [
@@ -291,5 +294,9 @@ CELERY_BEAT_SCHEDULE = {
     'check-expired-passwords': {
         'task': 'apps.gestion_hospitaliere.tasks.check_expired_passwords',
         'schedule': crontab(hour=0, minute=0),  # Quotidien a minuit
+    },
+    'auto-terminate-inactive-sessions': {
+        'task': 'apps.gestion_hospitaliere.tasks.auto_terminate_inactive_sessions',
+        'schedule': crontab(hour=0, minute=30),  # Quotidien a 00:30
     },
 }

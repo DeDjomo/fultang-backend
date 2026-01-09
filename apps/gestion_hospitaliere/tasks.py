@@ -11,6 +11,7 @@ import logging
 from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -102,3 +103,42 @@ def check_expired_passwords():
         count += 1
 
     return f"Bloque {count} mot(s) de passe expire(s)"
+
+
+@shared_task
+def auto_terminate_inactive_sessions():
+    """
+    Tache periodique pour terminer automatiquement les sessions inactives.
+
+    Selon users.md: si apres deux jours d'affilee aucune action (update, patch etc)
+    n'a ete faite sur une session, son statut passe automatiquement a 'terminee'.
+
+    Cette tache doit etre executee quotidiennement via Celery Beat.
+
+    Returns:
+        str: Nombre de sessions terminees
+    """
+    from apps.suivi_patient.models import Session
+
+    # Calculer la date limite (il y a 2 jours)
+    date_limite = timezone.now() - timedelta(days=2)
+
+    # Trouver les sessions non terminees et inactives depuis 2 jours
+    sessions_inactives = Session.objects.filter(
+        derniere_action__lt=date_limite
+    ).exclude(statut='terminee')
+
+    count = 0
+    for session in sessions_inactives:
+        session.statut = 'terminee'
+        session.fin = timezone.now()
+        # Utiliser update_fields pour eviter de mettre a jour derniere_action
+        Session.objects.filter(pk=session.pk).update(
+            statut='terminee',
+            fin=timezone.now()
+        )
+        count += 1
+        logger.info(f"Session {session.id} terminee automatiquement (inactive depuis 2 jours)")
+
+    return f"Termine {count} session(s) inactive(s)"
+

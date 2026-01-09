@@ -29,12 +29,14 @@ class LivraisonCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Livraison
         fields = [
+            'idLivraison',  # Retourné en réponse (read_only)
             'bon_livraison_numero',
             'nom_fournisseur',
             'contact_fournisseur',
             'date_reception',
             'montant_total'
         ]
+        read_only_fields = ['idLivraison']
     
     def validate_bon_livraison_numero(self, value):
         """Valider que le numéro de bon n'existe pas déjà."""
@@ -111,11 +113,17 @@ class SortieCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sortie
         fields = [
+            'idSortie',  # Retourné en réponse (read_only)
             'numero_sortie',
             'date_sortie',
             'motif_sortie',
-            'idPersonnel'
+            'idPersonnel',
+            'service_responsable',
+            'montant_total',
+            'heure_sortie',
+            'observations'
         ]
+        read_only_fields = ['idSortie']
     
     def validate_numero_sortie(self, value):
         """Valider que le numéro de sortie n'existe pas déjà."""
@@ -134,5 +142,9 @@ class SortieUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'date_sortie',
             'motif_sortie',
-            'idPersonnel'
+            'idPersonnel',
+            'service_responsable',
+            'montant_total',
+            'heure_sortie',
+            'observations'
         ]

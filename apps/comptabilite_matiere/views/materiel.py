@@ -8,7 +8,7 @@ Date: 2025-12-18
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from apps.comptabilite_matiere.permissions import DevelopmentOrAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -39,7 +39,7 @@ class MaterielViewSet(viewsets.ModelViewSet):
     """
     
     queryset = Materiel.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [DevelopmentOrAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     
     search_fields = ['nom_Materiel']
@@ -81,8 +81,9 @@ class MaterielMedicalViewSet(viewsets.ModelViewSet):
     """
     
     queryset = MaterielMedical.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [DevelopmentOrAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    pagination_class = None  # Désactiver la pagination pour récupérer tous les éléments
     
     filterset_fields = ['categorie', 'unite_mesure']
     search_fields = ['nom_Materiel']
@@ -144,8 +145,9 @@ class MaterielDurableViewSet(viewsets.ModelViewSet):
     """
     
     queryset = MaterielDurable.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [DevelopmentOrAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    pagination_class = None  # Désactiver la pagination pour récupérer tous les éléments
     
     filterset_fields = ['Etat', 'localisation']
     search_fields = ['nom_Materiel', 'localisation']

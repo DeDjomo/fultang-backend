@@ -6,6 +6,7 @@ Organization: ENSPY
 Date: 2025-12-18
 """
 from django.db import models
+from django.core.validators import MinValueValidator
 from apps.gestion_hospitaliere.models import Personnel
 
 
@@ -53,6 +54,37 @@ class Sortie(models.Model):
         help_text="Référence vers le personnel ayant effectué la sortie"
     )
     
+    service_responsable = models.CharField(
+        max_length=100,
+        verbose_name="Service responsable",
+        help_text="Service effectuant la sortie",
+        blank=True,
+        null=True
+    )
+    
+    montant_total = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(0)],
+        verbose_name="Montant total",
+        help_text="Montant total de la sortie (pour les ventes)"
+    )
+    
+    heure_sortie = models.TimeField(
+        blank=True,
+        null=True,
+        verbose_name="Heure de sortie",
+        help_text="Heure de la sortie"
+    )
+    
+    observations = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observations",
+        help_text="Remarques sur la sortie"
+    )
+    
     class Meta:
         verbose_name = "Sortie"
         verbose_name_plural = "Sorties"
@@ -61,3 +93,4 @@ class Sortie(models.Model):
     
     def __str__(self):
         return f"Sortie #{self.numero_sortie} - {self.get_motif_sortie_display()}"
+
