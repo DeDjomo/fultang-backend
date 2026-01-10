@@ -19,6 +19,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-change-me-please')
 
+# ALLOWED_HOSTS configuration
+# Added 172.16.24.139 for local network access
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'web', '172.16.24.139'] if os.getenv('DJANGO_DEBUG', 'True') == 'True' else os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost').split(',')
+
 # Application definition
 INSTALLED_APPS = [
     'daphne',  # WebSocket/ASGI server - must be first
@@ -254,6 +258,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:5173',  # Vite dev server
     'http://localhost:9000',  # Frontend dev server
     'http://127.0.0.1:9000',  # Frontend dev server
+    'http://172.16.24.139:9000',  # Network Access Added
 ]
 
 # ==================================================

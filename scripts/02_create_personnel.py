@@ -76,6 +76,11 @@ def create_personnel():
         nom = nom or random.choice(NOMS)
         prenom = prenom or random.choice(PRENOMS)
         
+        # Check if user already exists
+        if Personnel.objects.filter(email=email).exists():
+            print(f"  - Déjà existant: {email}")
+            return Personnel.objects.get(email=email)
+
         personnel = Personnel(
             username=email.split('@')[0] + '_' + email.split('@')[1].split('.')[0],
             email=email,
@@ -91,13 +96,21 @@ def create_personnel():
         personnel.save()
         return personnel
     
-    # 1. Créer les comptables (5)
-    print("\n--- Comptables ---")
+    # 1. Créer les comptables matière (5)
+    print("\n--- Comptables Matière ---")
     for i in range(1, 6):
         email = f"comptable@matiere{i}.com"
         p = create_one_personnel(email, 'comptable_matiere')
         created_personnel.append(p)
-        print(f"✓ Comptable créé: {email}")
+        print(f"✓ Comptable Matière créé: {email}")
+
+    # 1.bis Créer les comptables financiers (5)
+    print("\n--- Comptables Financiers ---")
+    for i in range(1, 6):
+        email = f"comptable@finance{i}.com"
+        p = create_one_personnel(email, 'comptable')
+        created_personnel.append(p)
+        print(f"✓ Comptable Financier créé: {email}")
     
     # 2. Créer le directeur (1)
     print("\n--- Directeur ---")
