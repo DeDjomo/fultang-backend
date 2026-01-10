@@ -160,7 +160,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Pour réactiver la sécurité, décommenter les lignes ci-dessous et supprimer AllowAny
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        # 'apps.gestion_hospitaliere.authentication.CustomJWTAuthentication',  # DÉSACTIVÉ POUR TESTS
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',  # TEMPORAIRE - remettre IsAuthenticated après les tests

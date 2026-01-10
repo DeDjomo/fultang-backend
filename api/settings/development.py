@@ -28,9 +28,11 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # En développement, autoriser l'accès sans authentification pour faciliter les tests
 REST_FRAMEWORK = {
     **REST_FRAMEWORK,
-    'DEFAULT_AUTHENTICATION_CLASSES': [],  # Pas d'authentification requise
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Accès libre à tous les endpoints
+        'rest_framework.permissions.IsAuthenticated', # Reverting to secure default
     ],
 }
 
